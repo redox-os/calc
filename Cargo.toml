@@ -3,4 +3,10 @@ name = "calc"
 version = "0.1.0"
 authors = ["Hunter Goldstein <hunter.d.goldstein@gmail.com>"]
 
-[dependencies]
+[lib]
+name = "calc"
+path = "src/lib.rs"
+
+[[bin]]
+name = "calc"
+path = "src/bin.rs"
