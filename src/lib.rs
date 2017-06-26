@@ -1,9 +1,16 @@
+#![feature(test)]
+
+extern crate test;
+
 use self::CalcError::*;
 
 use std::error::Error;
 use std::fmt;
 use std::io;
 use std::iter::Peekable;
+use std::num::ParseFloatError;
+
+#[cfg(test)] mod bench;
 
 #[derive(Debug, Clone)]
 pub enum Token {
