@@ -14,6 +14,9 @@ use std::num::ParseFloatError;
 #[cfg(test)]
 mod bench;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone)]
 pub enum Token {
     Plus,
@@ -32,7 +35,6 @@ pub enum Token {
     Modulo,
     OpenParen,
     CloseParen,
-    // TODO: Don't pass around a string when we can pass around a number
     Number(f64),
 }
 
@@ -518,10 +520,10 @@ pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 
-pub fn parse(tokens: &[Token]) -> Result<String, CalcError> {
-    d_expr(tokens).map(|answer| answer.value.to_string())
+pub fn parse(tokens: &[Token]) -> Result<f64, CalcError> {
+    d_expr(tokens).map(|answer| answer.value)
 }
 
-pub fn eval(input: &str) -> Result<String, CalcError> {
+pub fn eval(input: &str) -> Result<f64, CalcError> {
     tokenize(input).and_then(|x| parse(&x))
 }
