@@ -10,8 +10,22 @@ fn compare(input: &str, expected: f64) {
 }
 
 #[test]
+fn basics() {
+    let cases = vec![
+        ("  1 +   1", 2.0),
+        (" 4 * 7 - 14", 14.0),
+        (" 2 << 16 ", 131072.0),
+    ];
+    for (input, expected) in cases {
+        compare(input, expected);
+    }
+}
+
+#[test]
 fn random() {
     let cases = vec![
+        ("((15 * 10) - 26 * 19 - 30 / ((57 * 79 + 93 / 87 / 47))) / 8",
+         -43.00083277394169075309),
         ("(3 << 6) * 7 + (40 / 3)",
          1357.33333333333333333333),
         ("(21 & (5) ^ (20 & 81)) / (25 << 3)",
