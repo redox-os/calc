@@ -3,13 +3,13 @@ extern crate calc;
 use std::env::args;
 use std::process::exit;
 
-use std::io::{BufRead, stdout, stdin, Write, self};
+use std::io::{self, BufRead, stdout, stdin, Write};
 
 use calc::{eval, CalcError};
 
-const PROMPT : &'static str = "[]> ";
+const PROMPT: &'static str = "[]> ";
 
-pub fn prompt<W : Write>(out : &mut W) -> io::Result<()> {
+pub fn prompt<W: Write>(out: &mut W) -> io::Result<()> {
     write!(out, "{}", PROMPT)?;
     out.flush()
 }

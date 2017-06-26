@@ -10,7 +10,8 @@ use std::io;
 use std::iter::Peekable;
 use std::num::ParseFloatError;
 
-#[cfg(test)] mod bench;
+#[cfg(test)]
+mod bench;
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -38,23 +39,23 @@ pub enum Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let tok = match *self {
-            Token::Plus       => "Plus",
-            Token::Minus      => "Minus",
-            Token::Divide     => "Divide",
-            Token::Multiply   => "Multiply",
-            Token::Exponent   => "Exponent",
-            Token::Square     => "Square",
-            Token::Cube       => "Cube",
+            Token::Plus => "Plus",
+            Token::Minus => "Minus",
+            Token::Divide => "Divide",
+            Token::Multiply => "Multiply",
+            Token::Exponent => "Exponent",
+            Token::Square => "Square",
+            Token::Cube => "Cube",
             Token::BitWiseAnd => "And",
-            Token::BitWiseOr  => "Or",
+            Token::BitWiseOr => "Or",
             Token::BitWiseXor => "Xor",
             Token::BitWiseNot => "Not",
             Token::BitWiseRShift => "RShift",
             Token::BitWiseLShift => "LShift",
             Token::Modulo => "Modulo",
-            Token::OpenParen  => "OpenParen",
+            Token::OpenParen => "OpenParen",
             Token::CloseParen => "CloseParen",
-            Token::Number(_)  => "Number",
+            Token::Number(_) => "Number",
         };
         write!(f, "{}", tok)
     }
@@ -75,14 +76,16 @@ pub enum CalcError {
 impl From<CalcError> for String {
     fn from(data: CalcError) -> String {
         match data {
-            DivideByZero                 => String::from("calc: attempted to divide by zero"),
-            InvalidNumber(number)        => ["calc: invalid number: ", &number].concat(),
-            InvalidOperator(character)   => format!("calc: invalid operator: {}", character),
-            IO(error)                    => error.description().to_owned(),
-            UnrecognizedToken(token)     => ["calc: unrecognized token: ", &token].concat(),
-            UnexpectedToken(token, kind) => ["calc: unexpected ", kind, " token: ", &token].concat(),
-            UnexpectedEndOfInput         => String::from("calc: unexpected end of input"),
-            UnmatchedParenthesis         => String::from("calc: unmatched parenthesis")
+            DivideByZero => String::from("calc: attempted to divide by zero"),
+            InvalidNumber(number) => ["calc: invalid number: ", &number].concat(),
+            InvalidOperator(character) => format!("calc: invalid operator: {}", character),
+            IO(error) => error.description().to_owned(),
+            UnrecognizedToken(token) => ["calc: unrecognized token: ", &token].concat(),
+            UnexpectedToken(token, kind) => {
+                ["calc: unexpected ", kind, " token: ", &token].concat()
+            }
+            UnexpectedEndOfInput => String::from("calc: unexpected end of input"),
+            UnmatchedParenthesis => String::from("calc: unmatched parenthesis"),
         }
     }
 }
@@ -90,16 +93,18 @@ impl From<CalcError> for String {
 // By implementing this, we can have Rust automatically cast io::Errors into
 // calc errors, which reduces noise
 impl From<io::Error> for CalcError {
-    fn from(data : io::Error) -> CalcError { CalcError::IO(data) }
+    fn from(data: io::Error) -> CalcError {
+        CalcError::IO(data)
+    }
 }
 
 impl From<ParseFloatError> for CalcError {
-    fn from(data : ParseFloatError) -> CalcError {
+    fn from(data: ParseFloatError) -> CalcError {
         CalcError::InvalidNumber(data.description().into())
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct IntermediateResult {
     value: f64,
     tokens_read: usize,
@@ -114,7 +119,7 @@ impl IntermediateResult {
 enum OperatorState {
     PotentiallyIncomplete,
     Complete,
-    NotAnOperator
+    NotAnOperator,
 }
 
 trait IsOperator {
@@ -124,10 +129,9 @@ trait IsOperator {
 impl IsOperator for char {
     fn is_operator(self) -> bool {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' |
-            '&' | '|' | '~' | '>' | '%' | '(' |
-            ')' | '*' | '<' => true,
-            _ => false
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' | '%' | '(' | ')' |
+            '*' | '<' => true,
+            _ => false,
         }
     }
 }
@@ -139,12 +143,11 @@ trait CheckOperator {
 impl CheckOperator for char {
     fn check_operator(self) -> OperatorState {
         match self {
-            '+' | '-' | '/' |
-            '^' | '²' | '³' |
-            '&' | '|' | '~' |
-            '%' | '(' | ')' => OperatorState::Complete,
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%' | '(' | ')' => {
+                OperatorState::Complete
+            }
             '*' | '<' | '>' => OperatorState::PotentiallyIncomplete,
-            _ => OperatorState::NotAnOperator
+            _ => OperatorState::NotAnOperator,
         }
     }
 }
@@ -183,7 +186,7 @@ impl OperatorMatch for char {
             '%' => Some(Token::Modulo),
             '(' => Some(Token::OpenParen),
             ')' => Some(Token::CloseParen),
-            _   => None
+            _ => None,
         }
     }
 }
@@ -201,19 +204,21 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                 OperatorState::Complete => {
                     tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?);
                     chars.next();
-                },
+                }
                 OperatorState::PotentiallyIncomplete => {
                     chars.next();
                     match chars.peek() {
                         Some(&next_char) if next_char.is_operator() => {
-                            tokens.push([c, next_char].operator_type().ok_or_else(|| InvalidOperator(c))?);
+                            tokens.push([c, next_char].operator_type().ok_or_else(
+                                || InvalidOperator(c),
+                            )?);
                             chars.next();
                         }
                         _ => {
                             tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?);
                         }
                     }
-                },
+                }
                 OperatorState::NotAnOperator => {
                     if c.is_whitespace() {
                         chars.next();
@@ -250,8 +255,11 @@ fn consume_number<I: Iterator<Item = char>>(input: &mut Peekable<I>) -> String {
 }
 
 fn consume_until_new_token<I: Iterator<Item = char>>(input: &mut I) -> String {
-    input.take_while(|c| !(c.is_whitespace() || c.is_operator() || c.is_digit(10)))
-         .collect()
+    input
+        .take_while(|c| {
+            !(c.is_whitespace() || c.is_operator() || c.is_digit(10))
+        })
+        .collect()
 }
 
 pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
@@ -261,32 +269,36 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     while index < token_list.len() {
         match token_list[index] {
             Token::BitWiseAnd => {
-                let e2 = try!(e_expr(&token_list[index+1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor(){
+                let e2 = try!(e_expr(&token_list[index + 1..]));
+                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f &= int_s;
                     e1.value = int_f as f64;
                     e1.tokens_read += e2.tokens_read + 1;
-                }
-                else {
+                } else {
                     //Obviously to lowercase isn't really what I want, but I don't really know how to get the string from the number, will check later -mgmoens
-                    return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
+                    return Err(CalcError::UnexpectedToken(
+                        "Not a integer number!".to_lowercase(),
+                        "Not a integer number!",
+                    ));
                 }
-            },
+            }
             Token::BitWiseOr => {
-                let e2 = try!(e_expr(&token_list[index+1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor(){
+                let e2 = try!(e_expr(&token_list[index + 1..]));
+                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f |= int_s;
                     e1.value = int_f as f64;
                     e1.tokens_read += e2.tokens_read + 1;
+                } else {
+                    return Err(CalcError::UnexpectedToken(
+                        "Not a integer number!".to_lowercase(),
+                        "Not a integer number!",
+                    ));
                 }
-                else {
-                    return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
-                }
-            },
+            }
             Token::BitWiseNot => {
                 if e1.value == e1.value.floor() {
                     let mut int_f = e1.value.floor() as i64;
@@ -296,50 +308,58 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     int_f = !(int_f);
                     e1.value = int_f as f64;
                     e1.tokens_read += 1;
+                } else {
+                    return Err(CalcError::UnexpectedToken(
+                        "Not a integer number!".to_lowercase(),
+                        "Not a integer number!",
+                    ));
                 }
-                else {
-                    return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
-                }
-            },
+            }
             Token::BitWiseXor => {
-                let e2 = try!(e_expr(&token_list[index+1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor(){
+                let e2 = try!(e_expr(&token_list[index + 1..]));
+                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f ^= int_s;
                     e1.value = int_f as f64;
                     e1.tokens_read += e2.tokens_read + 1;
+                } else {
+                    return Err(CalcError::UnexpectedToken(
+                        "Not a integer number!".to_lowercase(),
+                        "Not a integer number!",
+                    ));
                 }
-                else {
-                    return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
-                }
-            },
+            }
             Token::BitWiseLShift => {
-                let e2 = try!(e_expr(&token_list[index+1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor(){
+                let e2 = try!(e_expr(&token_list[index + 1..]));
+                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f <<= int_s;
                     e1.value = int_f as f64;
                     e1.tokens_read += e2.tokens_read + 1;
+                } else {
+                    return Err(CalcError::UnexpectedToken(
+                        "Not a integer number!".to_lowercase(),
+                        "Not a integer number!",
+                    ));
                 }
-                else {
-                    return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
-                }
-            },
+            }
             Token::BitWiseRShift => {
-                let e2 = try!(e_expr(&token_list[index+1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor(){
+                let e2 = try!(e_expr(&token_list[index + 1..]));
+                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f >>= int_s;
                     e1.value = int_f as f64;
                     e1.tokens_read += e2.tokens_read + 1;
+                } else {
+                    return Err(CalcError::UnexpectedToken(
+                        "Not a integer number!".to_lowercase(),
+                        "Not a integer number!",
+                    ));
                 }
-                else {
-                    return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
-                }
-            },
+            }
             Token::Number(ref n) => {
                 return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
             }
@@ -357,16 +377,16 @@ pub fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     while index < token_list.len() {
         match token_list[index] {
             Token::Plus => {
-                let t2 = try!(t_expr(&token_list[index+1..]));
+                let t2 = try!(t_expr(&token_list[index + 1..]));
                 t1.value += t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
             Token::Minus => {
-                let t2 = try!(t_expr(&token_list[index+1..]));
+                let t2 = try!(t_expr(&token_list[index + 1..]));
                 t1.value -= t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
-            Token::Number(n) => return Err(CalcError::UnexpectedToken(n.to_string(),"operator")),
+            Token::Number(n) => return Err(CalcError::UnexpectedToken(n.to_string(), "operator")),
             _ => break,
         };
         index = t1.tokens_read;
@@ -382,12 +402,12 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     while index < token_list.len() {
         match token_list[index] {
             Token::Multiply => {
-                let f2 = try!(f_expr(&token_list[index+1..]));
+                let f2 = try!(f_expr(&token_list[index + 1..]));
                 f1.value *= f2.value;
                 f1.tokens_read += f2.tokens_read + 1;
             }
             Token::Divide => {
-                let f2 = try!(f_expr(&token_list[index+1..]));
+                let f2 = try!(f_expr(&token_list[index + 1..]));
                 if f2.value == 0.0 {
                     return Err(CalcError::DivideByZero);
                 } else {
@@ -396,8 +416,8 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::Modulo => {
-                let f2 = try!(f_expr(&token_list[index+1..]));
-                if f2.value == 0.0{
+                let f2 = try!(f_expr(&token_list[index + 1..]));
+                if f2.value == 0.0 {
                     return Err(CalcError::DivideByZero);
                 } else {
                     f1.value %= f2.value;
@@ -405,7 +425,7 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::Number(n) => {
-                return Err(CalcError::UnexpectedToken(n.to_string(),"operator"));
+                return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
             }
             _ => break,
         }
@@ -422,20 +442,20 @@ pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     while index < token_len {
         match token_list[index] {
             Token::Exponent => {
-                let f = try!(f_expr(&token_list[index+1..]));
+                let f = try!(f_expr(&token_list[index + 1..]));
                 g1.value = g1.value.powf(f.value);
                 g1.tokens_read += f.tokens_read + 1;
-            },
+            }
             Token::Square => {
-                g1.value = g1.value*g1.value;
+                g1.value = g1.value * g1.value;
                 g1.tokens_read += 1;
-            },
+            }
             Token::Cube => {
-                g1.value = g1.value*g1.value*g1.value;
+                g1.value = g1.value * g1.value * g1.value;
                 g1.tokens_read += 1;
-            },
+            }
             Token::Number(n) => {
-                return Err(CalcError::UnexpectedToken(n.to_string(),"operator"));
+                return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
             }
             _ => break,
         }
@@ -448,15 +468,16 @@ pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     if !token_list.is_empty() {
         match token_list[0] {
-            Token::Number(n) => {
-                Ok(IntermediateResult::new(n, 1))
-            }
+            Token::Number(n) => Ok(IntermediateResult::new(n, 1)),
             Token::Minus => {
                 if token_list.len() > 1 {
                     if let Token::Number(ref n) = token_list[1] {
                         Ok(IntermediateResult::new(-n, 2))
                     } else {
-                        Err(CalcError::UnexpectedToken(token_list[1].to_string(), "number"))
+                        Err(CalcError::UnexpectedToken(
+                            token_list[1].to_string(),
+                            "number",
+                        ))
                     }
                 } else {
                     Err(CalcError::UnexpectedEndOfInput)
@@ -469,8 +490,14 @@ pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                         let close_paren = ir.tokens_read + 1;
                         if close_paren < token_list.len() {
                             match token_list[close_paren] {
-                                Token::CloseParen => Ok(IntermediateResult::new(ir.value, close_paren+1)),
-                                _ => Err(CalcError::UnexpectedToken(token_list[close_paren].to_string(), ")")),
+                                Token::CloseParen => Ok(IntermediateResult::new(
+                                    ir.value,
+                                    close_paren + 1,
+                                )),
+                                _ => Err(CalcError::UnexpectedToken(
+                                    token_list[close_paren].to_string(),
+                                    ")",
+                                )),
                             }
                         } else {
                             Err(CalcError::UnmatchedParenthesis)
@@ -479,7 +506,10 @@ pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     Err(e) => Err(e),
                 }
             }
-            _ => Err(CalcError::UnexpectedToken(token_list[0].to_string(), "number"))
+            _ => Err(CalcError::UnexpectedToken(
+                token_list[0].to_string(),
+                "number",
+            )),
         }
     } else {
         Err(CalcError::UnexpectedEndOfInput)
