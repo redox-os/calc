@@ -3,9 +3,16 @@ extern crate calc;
 use std::env::args;
 use std::process::exit;
 
-use std::io::{stdout, stdin, Write};
+use std::io::{BufRead, stdout, stdin, Write, self};
 
 use calc::{eval, CalcError};
+
+const PROMPT : &'static str = "[]> ";
+
+pub fn prompt<W : Write>(out : &mut W) -> io::Result<()> {
+    write!(out, "{}", PROMPT)?;
+    out.flush()
+}
 
 pub fn calc(args: Vec<String>) -> Result<(), CalcError> {
     let stdout = stdout();
@@ -13,30 +20,26 @@ pub fn calc(args: Vec<String>) -> Result<(), CalcError> {
     if !args.is_empty() {
         writeln!(stdout, "{}", eval(&args.join(""))?)?;
     } else {
-        let prompt = b"[]> ";
-        loop {
-            let _ = stdout.write(prompt)?;
-            let mut input = String::new();
-            stdin().read_line(&mut input)?;
-            if input.is_empty() {
-                break;
-            } else {
-                match input.trim() {
-                    "" => (),
-                    "exit" => break,
-                    s => writeln!(stdout, "{}", eval(s)?)?,
-                }
+        // Print out the prompt before we try to read the first line of stdin
+        prompt(&mut stdout)?;
+        let stdin = stdin();
+        for line in stdin.lock().lines() {
+            match line?.trim() {
+                "" => (),
+                "exit" => break,
+                s => writeln!(stdout, "{}", eval(s)?)?,
             }
+            prompt(&mut stdout)?;
         }
     }
     Ok(())
 }
 
 fn main() {
-    let code = match calc(args().collect()) {
+    let code = match calc(args().skip(1).collect()) {
         Ok(()) => 0,
         Err(e) => {
-            println!("Encountered error: {}", String::from(e));
+            println!("{}", String::from(e));
             1
         }
     };

@@ -1,7 +1,9 @@
+use self::CalcError::*;
+
 use std::error::Error;
+use std::fmt;
 use std::io;
 use std::iter::Peekable;
-use self::CalcError::*;
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -26,9 +28,9 @@ pub enum Token {
 }
 
 
-impl Token {
-    pub fn to_str(&self) -> &'static str {
-        match *self {
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let tok = match *self {
             Token::Plus       => "Plus",
             Token::Minus      => "Minus",
             Token::Divide     => "Divide",
@@ -46,11 +48,8 @@ impl Token {
             Token::OpenParen  => "OpenParen",
             Token::CloseParen => "CloseParen",
             Token::Number(_)  => "Number",
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        self.to_str().to_owned()
+        };
+        write!(f, "{}", tok)
     }
 }
 
@@ -65,6 +64,7 @@ pub enum CalcError {
     UnmatchedParenthesis,
     IO(io::Error),
 }
+
 
 impl From<CalcError> for String {
     fn from(data: CalcError) -> String {
@@ -95,10 +95,7 @@ pub struct IntermediateResult {
 
 impl IntermediateResult {
     fn new(value: f64, tokens_read: usize) -> Self {
-        IntermediateResult {
-            value: value,
-            tokens_read: tokens_read,
-        }
+        IntermediateResult { value, tokens_read }
     }
 }
 
