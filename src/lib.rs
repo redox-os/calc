@@ -1,6 +1,6 @@
-#![feature(test)]
+#![cfg_attr(test, feature(test))]
 
-extern crate test;
+#[cfg(test)] extern crate test;
 
 use self::CalcError::*;
 
@@ -10,8 +10,7 @@ use std::io;
 use std::iter::Peekable;
 use std::num::ParseFloatError;
 
-#[cfg(test)]
-mod bench;
+#[cfg(test)] mod bench;
 
 #[derive(Debug, Clone)]
 pub enum Token {
