@@ -31,7 +31,7 @@ pub enum Token {
     OpenParen,
     CloseParen,
     // TODO: Don't pass around a string when we can pass around a number
-    Number(String),
+    Number(f64),
 }
 
 
@@ -72,7 +72,6 @@ pub enum CalcError {
     IO(io::Error),
 }
 
-
 impl From<CalcError> for String {
     fn from(data: CalcError) -> String {
         match data {
@@ -92,6 +91,12 @@ impl From<CalcError> for String {
 // calc errors, which reduces noise
 impl From<io::Error> for CalcError {
     fn from(data : io::Error) -> CalcError { CalcError::IO(data) }
+}
+
+impl From<ParseFloatError> for CalcError {
+    fn from(data : ParseFloatError) -> CalcError {
+        CalcError::InvalidNumber(data.description().into())
+    }
 }
 
 #[derive(Clone,Debug)]
@@ -190,7 +195,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     while let Some(&c) = chars.peek() {
         if c.is_digit(10) || c == '.' {
             let token_string = consume_number(&mut chars);
-            tokens.push(Token::Number(token_string));
+            tokens.push(Token::Number(token_string.parse()?));
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
@@ -335,7 +340,9 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     return Err(CalcError::UnexpectedToken("Not a integer number!".to_lowercase(),"Not a integer number!"));
                 }
             },
-            Token::Number(ref n) => return Err(CalcError::UnexpectedToken(n.clone(),"operator")),
+            Token::Number(ref n) => {
+                return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
+            }
             _ => break,
         };
         index = e1.tokens_read;
@@ -359,7 +366,7 @@ pub fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 t1.value -= t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
-            Token::Number(ref n) => return Err(CalcError::UnexpectedToken(n.clone(),"operator")),
+            Token::Number(n) => return Err(CalcError::UnexpectedToken(n.to_string(),"operator")),
             _ => break,
         };
         index = t1.tokens_read;
@@ -397,7 +404,9 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     f1.tokens_read += f2.tokens_read + 1;
                 }
             }
-            Token::Number(ref n) => return Err(CalcError::UnexpectedToken(n.clone(),"operator")),
+            Token::Number(n) => {
+                return Err(CalcError::UnexpectedToken(n.to_string(),"operator"));
+            }
             _ => break,
         }
         index = f1.tokens_read;
@@ -425,7 +434,9 @@ pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 g1.value = g1.value*g1.value*g1.value;
                 g1.tokens_read += 1;
             },
-            Token::Number(ref n) => return Err(CalcError::UnexpectedToken(n.clone(),"operator")),
+            Token::Number(n) => {
+                return Err(CalcError::UnexpectedToken(n.to_string(),"operator"));
+            }
             _ => break,
         }
         index = g1.tokens_read;
@@ -437,17 +448,13 @@ pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     if !token_list.is_empty() {
         match token_list[0] {
-            Token::Number(ref n) => {
-                n.parse::<f64>()
-                 .map_err(|_| CalcError::InvalidNumber(n.clone()))
-                 .and_then(|num| Ok(IntermediateResult::new(num, 1)))
+            Token::Number(n) => {
+                Ok(IntermediateResult::new(n, 1))
             }
             Token::Minus => {
                 if token_list.len() > 1 {
                     if let Token::Number(ref n) = token_list[1] {
-                        n.parse::<f64>()
-                         .map_err(|_| CalcError::InvalidNumber(n.clone()))
-                         .and_then(|num| Ok(IntermediateResult::new(-1.0 * num, 2)))
+                        Ok(IntermediateResult::new(-n, 2))
                     } else {
                         Err(CalcError::UnexpectedToken(token_list[1].to_string(), "number"))
                     }
@@ -487,4 +494,3 @@ pub fn parse(tokens: &[Token]) -> Result<String, CalcError> {
 pub fn eval(input: &str) -> Result<String, CalcError> {
     tokenize(input).and_then(|x| parse(&x))
 }
-
