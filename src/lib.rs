@@ -17,7 +17,7 @@ mod bench;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Plus,
     Minus,
