@@ -24,6 +24,31 @@ fn basics() {
 }
 
 #[test]
+fn tokens() {
+    let line = "(3 + 7) >> 10 * (7 % 2)";
+    let expected = vec![
+        Token::OpenParen,
+        Token::Number(3.0),
+        Token::Plus,
+        Token::Number(7.0),
+        Token::CloseParen,
+        Token::BitWiseRShift,
+        Token::Number(10.0),
+        Token::Multiply,
+        Token::OpenParen,
+        Token::Number(7.0),
+        Token::Modulo,
+        Token::Number(2.0),
+        Token::CloseParen
+    ];
+    if let Ok(tokens) = tokenize(line) {
+        assert_eq!(tokens, expected);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
 fn random() {
     let cases = vec![
         ("((15 * 10) - 26 * 19 - 30 / ((57 * 79 + 93 / 87 / 47))) / 8",
