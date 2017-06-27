@@ -114,9 +114,17 @@ pub struct IntermediateResult {
 }
 
 impl IntermediateResult {
+
     fn new(value: f64, tokens_read: usize) -> Self {
         IntermediateResult { value, tokens_read }
     }
+
+    /// Determines if the underlying value can be represented as an integer. This is used for
+    /// typechecking of sorts: we can only do bitwise operations on integers.
+    pub fn is_whole(&self) -> bool {
+        self.value == self.value.floor()
+    }
+
 }
 
 enum OperatorState {
@@ -266,30 +274,29 @@ fn consume_until_new_token<I: Iterator<Item = char>>(input: &mut I) -> String {
 }
 
 pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
-    let mut e1 = try!(e_expr(token_list));
+    let mut e1 = e_expr(token_list)?;
     let mut index = e1.tokens_read;
 
     while index < token_list.len() {
         match token_list[index] {
             Token::BitWiseAnd => {
-                let e2 = try!(e_expr(&token_list[index + 1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
+                let e2 = e_expr(&token_list[index + 1..])?;
+                if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f &= int_s;
                     e1.value = int_f as f64;
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
-                    //Obviously to lowercase isn't really what I want, but I don't really know how to get the string from the number, will check later -mgmoens
                     return Err(CalcError::UnexpectedToken(
-                        "Not a integer number!".to_lowercase(),
+                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
                         "Not a integer number!",
                     ));
                 }
             }
             Token::BitWiseOr => {
-                let e2 = try!(e_expr(&token_list[index + 1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
+                let e2 = e_expr(&token_list[index + 1..])?;
+                if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f |= int_s;
@@ -297,13 +304,13 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        "Not a integer number!".to_lowercase(),
+                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
                         "Not a integer number!",
                     ));
                 }
             }
             Token::BitWiseNot => {
-                if e1.value == e1.value.floor() {
+                if e1.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     //magic number: bigest integer representable by f64 is 2^53, which is 0b1<<54 according to https://stackoverflow.com/questions/1848700/biggest-integer-that-can-be-stored-in-a-double
                     // make a mask by shifting 11... between the sign bit and the number to effectively get a 55 bit signed number
@@ -312,15 +319,12 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.value = int_f as f64;
                     e1.tokens_read += 1;
                 } else {
-                    return Err(CalcError::UnexpectedToken(
-                        "Not a integer number!".to_lowercase(),
-                        "Not a integer number!",
-                    ));
+                    return Err(CalcError::UnexpectedToken(e1.value.to_string(), "Not a integer number!"));
                 }
             }
             Token::BitWiseXor => {
-                let e2 = try!(e_expr(&token_list[index + 1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
+                let e2 = e_expr(&token_list[index + 1..])?;
+                if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f ^= int_s;
@@ -328,14 +332,14 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        "Not a integer number!".to_lowercase(),
+                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
                         "Not a integer number!",
                     ));
                 }
             }
             Token::BitWiseLShift => {
-                let e2 = try!(e_expr(&token_list[index + 1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
+                let e2 = e_expr(&token_list[index + 1..])?;
+                if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f <<= int_s;
@@ -343,14 +347,14 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        "Not a integer number!".to_lowercase(),
+                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
                         "Not a integer number!",
                     ));
                 }
             }
             Token::BitWiseRShift => {
-                let e2 = try!(e_expr(&token_list[index + 1..]));
-                if e1.value == e1.value.floor() && e2.value == e2.value.floor() {
+                let e2 = e_expr(&token_list[index + 1..])?;
+                if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
                     int_f >>= int_s;
@@ -358,7 +362,7 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        "Not a integer number!".to_lowercase(),
+                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
                         "Not a integer number!",
                     ));
                 }
@@ -374,18 +378,18 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 // Addition and subtraction
 pub fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
-    let mut t1 = try!(t_expr(token_list));
+    let mut t1 = t_expr(token_list)?;
     let mut index = t1.tokens_read;
 
     while index < token_list.len() {
         match token_list[index] {
             Token::Plus => {
-                let t2 = try!(t_expr(&token_list[index + 1..]));
+                let t2 = t_expr(&token_list[index + 1..])?;
                 t1.value += t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
             Token::Minus => {
-                let t2 = try!(t_expr(&token_list[index + 1..]));
+                let t2 = t_expr(&token_list[index + 1..])?;
                 t1.value -= t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
@@ -399,18 +403,18 @@ pub fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 
 // Multiplication and division
 pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
-    let mut f1 = try!(f_expr(token_list));
+    let mut f1 = f_expr(token_list)?;
     let mut index = f1.tokens_read;
 
     while index < token_list.len() {
         match token_list[index] {
             Token::Multiply => {
-                let f2 = try!(f_expr(&token_list[index + 1..]));
+                let f2 = f_expr(&token_list[index + 1..])?;
                 f1.value *= f2.value;
                 f1.tokens_read += f2.tokens_read + 1;
             }
             Token::Divide => {
-                let f2 = try!(f_expr(&token_list[index + 1..]));
+                let f2 = f_expr(&token_list[index + 1..])?;
                 if f2.value == 0.0 {
                     return Err(CalcError::DivideByZero);
                 } else {
@@ -419,7 +423,7 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::Modulo => {
-                let f2 = try!(f_expr(&token_list[index + 1..]));
+                let f2 = f_expr(&token_list[index + 1..])?;
                 if f2.value == 0.0 {
                     return Err(CalcError::DivideByZero);
                 } else {
@@ -439,13 +443,13 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 
 // Exponentiation
 pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
-    let mut g1 = try!(g_expr(token_list)); //was g1
+    let mut g1 = g_expr(token_list)?; //was g1
     let mut index = g1.tokens_read;
     let token_len = token_list.len();
     while index < token_len {
         match token_list[index] {
             Token::Exponent => {
-                let f = try!(f_expr(&token_list[index + 1..]));
+                let f = f_expr(&token_list[index + 1..])?;
                 g1.value = g1.value.powf(f.value);
                 g1.tokens_read += f.tokens_read + 1;
             }
