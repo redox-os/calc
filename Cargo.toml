@@ -9,7 +9,6 @@ readme = "README.md"
 homepage = "https://github.com/redox-os/calc"
 repository = "https://github.com/redox-os/calc"
 include = [
-  "LICENSE"
   "**/*.rs",
   "Cargo.toml",
 ]
