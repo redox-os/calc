@@ -3,7 +3,6 @@ name = "calc"
 version = "0.1.0"
 authors = ["Hunter Goldstein <hunter.d.goldstein@gmail.com>"]
 description = "Rust library for parsing and processing arithmetic expressions"
-licence = "MIT"
 license-file = "LICENSE"
 readme = "README.md"
 homepage = "https://github.com/redox-os/calc"

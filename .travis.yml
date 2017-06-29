@@ -1,0 +1,15 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+sudo: false
+notifications:
+  email: false
+# Travis uses the following as a default anyways
+# script:
+#   - cargo build --verbose
+#   - cargo test --verbose
+matrix:
+  allow_failures:
+    - rust: nightly
