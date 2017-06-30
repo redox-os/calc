@@ -81,10 +81,16 @@ impl From<CalcError> for String {
     fn from(data: CalcError) -> String {
         match data {
             DivideByZero => "calc: attempted to divide by zero".into(),
-            InvalidNumber(number) => ["calc: invalid number: ", &number].concat(),
-            InvalidOperator(character) => format!("calc: invalid operator: {}", character),
+            InvalidNumber(number) => {
+                ["calc: invalid number: ", &number].concat()
+            }
+            InvalidOperator(character) => {
+                format!("calc: invalid operator: {}", character)
+            }
             IO(error) => error.description().into(),
-            UnrecognizedToken(token) => ["calc: unrecognized token: ", &token].concat(),
+            UnrecognizedToken(token) => {
+                ["calc: unrecognized token: ", &token].concat()
+            }
             UnexpectedToken(token, kind) => {
                 ["calc: unexpected ", kind, " token: ", &token].concat()
             }
@@ -119,8 +125,9 @@ impl IntermediateResult {
         IntermediateResult { value, tokens_read }
     }
 
-    /// Determines if the underlying value can be represented as an integer. This is used for
-    /// typechecking of sorts: we can only do bitwise operations on integers.
+    /// Determines if the underlying value can be represented as an integer.
+    /// This is used for typechecking of sorts: we can only do bitwise operations
+    /// on integers.
     pub fn is_whole(&self) -> bool {
         self.value == self.value.floor()
     }
@@ -139,8 +146,8 @@ trait IsOperator {
 impl IsOperator for char {
     fn is_operator(self) -> bool {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' | '%' | '(' | ')' |
-            '*' | '<' => true,
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' |
+            '%' | '(' | ')' | '*' | '<' => true,
             _ => false,
         }
     }
@@ -153,9 +160,8 @@ trait CheckOperator {
 impl CheckOperator for char {
     fn check_operator(self) -> OperatorState {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%' | '(' | ')' => {
-                OperatorState::Complete
-            }
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%' |
+            '(' | ')' => OperatorState::Complete,
             '*' | '<' | '>' => OperatorState::PotentiallyIncomplete,
             _ => OperatorState::NotAnOperator,
         }
@@ -212,20 +218,28 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?);
+                    tokens.push(
+                        c.operator_type().ok_or_else(|| InvalidOperator(c))?,
+                    );
                     chars.next();
                 }
                 OperatorState::PotentiallyIncomplete => {
                     chars.next();
                     match chars.peek() {
                         Some(&next_char) if next_char.is_operator() => {
-                            tokens.push([c, next_char].operator_type().ok_or_else(
-                                || InvalidOperator(c),
-                            )?);
+                            tokens.push(
+                                [c, next_char].operator_type().ok_or_else(
+                                    || {
+                                        InvalidOperator(c)
+                                    },
+                                )?,
+                            );
                             chars.next();
                         }
                         _ => {
-                            tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?);
+                            tokens.push(c.operator_type().ok_or_else(
+                                || InvalidOperator(c),
+                            )?);
                         }
                     }
                 }
@@ -375,7 +389,9 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::Number(ref n) => {
-                return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
+                return Err(
+                    CalcError::UnexpectedToken(n.to_string(), "operator"),
+                );
             }
             _ => break,
         };
@@ -400,7 +416,11 @@ fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 t1.value -= t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
-            Token::Number(n) => return Err(CalcError::UnexpectedToken(n.to_string(), "operator")),
+            Token::Number(n) => {
+                return Err(
+                    CalcError::UnexpectedToken(n.to_string(), "operator"),
+                )
+            }
             _ => break,
         };
         index = t1.tokens_read;
@@ -439,7 +459,9 @@ fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::Number(n) => {
-                return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
+                return Err(
+                    CalcError::UnexpectedToken(n.to_string(), "operator"),
+                );
             }
             _ => break,
         }
@@ -469,7 +491,9 @@ fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 g1.tokens_read += 1;
             }
             Token::Number(n) => {
-                return Err(CalcError::UnexpectedToken(n.to_string(), "operator"));
+                return Err(
+                    CalcError::UnexpectedToken(n.to_string(), "operator"),
+                );
             }
             _ => break,
         }
@@ -504,10 +528,12 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                         let close_paren = ir.tokens_read + 1;
                         if close_paren < token_list.len() {
                             match token_list[close_paren] {
-                                Token::CloseParen => Ok(IntermediateResult::new(
-                                    ir.value,
-                                    close_paren + 1,
-                                )),
+                                Token::CloseParen => Ok(
+                                    IntermediateResult::new(
+                                        ir.value,
+                                        close_paren + 1,
+                                    ),
+                                ),
                                 _ => Err(CalcError::UnexpectedToken(
                                     token_list[close_paren].to_string(),
                                     ")",
