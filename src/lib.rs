@@ -114,7 +114,6 @@ struct IntermediateResult {
 }
 
 impl IntermediateResult {
-
     fn new(value: f64, tokens_read: usize) -> Self {
         IntermediateResult { value, tokens_read }
     }
@@ -124,7 +123,6 @@ impl IntermediateResult {
     pub fn is_whole(&self) -> bool {
         self.value == self.value.floor()
     }
-
 }
 
 enum OperatorState {
@@ -289,7 +287,8 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
+                        (if e1.is_whole() { e2.value } else { e1.value })
+                            .to_string(),
                         "Not a integer number!",
                     ));
                 }
@@ -304,7 +303,8 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
+                        (if e1.is_whole() { e2.value } else { e1.value })
+                            .to_string(),
                         "Not a integer number!",
                     ));
                 }
@@ -319,7 +319,10 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.value = int_f as f64;
                     e1.tokens_read += 1;
                 } else {
-                    return Err(CalcError::UnexpectedToken(e1.value.to_string(), "Not a integer number!"));
+                    return Err(CalcError::UnexpectedToken(
+                        e1.value.to_string(),
+                        "Not a integer number!",
+                    ));
                 }
             }
             Token::BitWiseXor => {
@@ -332,7 +335,8 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
+                        (if e1.is_whole() { e2.value } else { e1.value })
+                            .to_string(),
                         "Not a integer number!",
                     ));
                 }
@@ -347,7 +351,8 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
+                        (if e1.is_whole() { e2.value } else { e1.value })
+                            .to_string(),
                         "Not a integer number!",
                     ));
                 }
@@ -362,7 +367,8 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     e1.tokens_read += e2.tokens_read + 1;
                 } else {
                     return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value }).to_string(),
+                        (if e1.is_whole() { e2.value } else { e1.value })
+                            .to_string(),
                         "Not a integer number!",
                     ));
                 }
