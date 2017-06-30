@@ -4,7 +4,9 @@ rust:
 sudo: false
 notifications:
   email: false
-# Travis uses the following as a default anyways
-# script:
-#   - cargo build --verbose
-#   - cargo test --verbose
+cache: cargo
+before_script: (cargo install rustfmt || true)
+script:
+  - cargo fmt -- --write-mode=diff
+  - cargo build
+  - cargo test
