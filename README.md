@@ -7,6 +7,8 @@
 
 ## As a Library
 
+**NOTE**: `calc` is currently claimed by another individual so this package has _not yet been published_ and may undergo a name change.
+
 Add `calc` as a dependency in your `Cargo.toml`:
 ```toml
 [dependencies]
