@@ -1,7 +1,5 @@
 language: rust
 rust:
-  - stable
-  - beta
   - nightly
 sudo: false
 notifications:
@@ -10,6 +8,3 @@ notifications:
 # script:
 #   - cargo build --verbose
 #   - cargo test --verbose
-matrix:
-  allow_failures:
-    - rust: nightly
