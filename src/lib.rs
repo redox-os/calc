@@ -19,7 +19,7 @@ mod tests;
 
 /// Tokens used for
 #[derive(Debug, Clone, PartialEq)]
-enum Token {
+pub enum Token {
     Plus,
     Minus,
     Divide,
@@ -201,7 +201,7 @@ impl OperatorMatch for char {
     }
 }
 
-fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
+pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     let mut tokens = Vec::with_capacity(input.len());
     let mut chars = input.chars().peekable();
 
