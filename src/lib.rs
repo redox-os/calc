@@ -17,6 +17,7 @@ mod bench;
 #[cfg(test)]
 mod tests;
 
+/// Tokens used for
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
     Plus,
@@ -79,16 +80,16 @@ pub enum CalcError {
 impl From<CalcError> for String {
     fn from(data: CalcError) -> String {
         match data {
-            DivideByZero => String::from("calc: attempted to divide by zero"),
+            DivideByZero => "calc: attempted to divide by zero".into(),
             InvalidNumber(number) => ["calc: invalid number: ", &number].concat(),
             InvalidOperator(character) => format!("calc: invalid operator: {}", character),
-            IO(error) => error.description().to_owned(),
+            IO(error) => error.description().into(),
             UnrecognizedToken(token) => ["calc: unrecognized token: ", &token].concat(),
             UnexpectedToken(token, kind) => {
                 ["calc: unexpected ", kind, " token: ", &token].concat()
             }
-            UnexpectedEndOfInput => String::from("calc: unexpected end of input"),
-            UnmatchedParenthesis => String::from("calc: unmatched parenthesis"),
+            UnexpectedEndOfInput => "calc: unexpected end of input".into(),
+            UnmatchedParenthesis => "calc: unmatched parenthesis".into(),
         }
     }
 }
@@ -289,7 +290,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     return Err(CalcError::UnexpectedToken(
                         (if e1.is_whole() { e2.value } else { e1.value })
                             .to_string(),
-                        "Not a integer number!",
+                        "Not an integer number!",
                     ));
                 }
             }
@@ -305,7 +306,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     return Err(CalcError::UnexpectedToken(
                         (if e1.is_whole() { e2.value } else { e1.value })
                             .to_string(),
-                        "Not a integer number!",
+                        "Not an integer number!",
                     ));
                 }
             }
@@ -321,7 +322,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 } else {
                     return Err(CalcError::UnexpectedToken(
                         e1.value.to_string(),
-                        "Not a integer number!",
+                        "Not an integer number!",
                     ));
                 }
             }
@@ -337,7 +338,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     return Err(CalcError::UnexpectedToken(
                         (if e1.is_whole() { e2.value } else { e1.value })
                             .to_string(),
-                        "Not a integer number!",
+                        "Not an integer number!",
                     ));
                 }
             }
@@ -353,7 +354,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     return Err(CalcError::UnexpectedToken(
                         (if e1.is_whole() { e2.value } else { e1.value })
                             .to_string(),
-                        "Not a integer number!",
+                        "Not an integer number!",
                     ));
                 }
             }
@@ -369,7 +370,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                     return Err(CalcError::UnexpectedToken(
                         (if e1.is_whole() { e2.value } else { e1.value })
                             .to_string(),
-                        "Not a integer number!",
+                        "Not an integer number!",
                     ));
                 }
             }
