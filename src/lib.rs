@@ -18,7 +18,7 @@ mod bench;
 mod tests;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token {
+enum Token {
     Plus,
     Minus,
     Divide,
@@ -108,7 +108,7 @@ impl From<ParseFloatError> for CalcError {
 }
 
 #[derive(Clone, Debug)]
-pub struct IntermediateResult {
+struct IntermediateResult {
     value: f64,
     tokens_read: usize,
 }
@@ -163,7 +163,7 @@ impl CheckOperator for char {
     }
 }
 
-pub trait OperatorMatch {
+trait OperatorMatch {
     fn operator_type(self) -> Option<Token>;
 }
 
@@ -202,7 +202,7 @@ impl OperatorMatch for char {
     }
 }
 
-pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
+fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     let mut tokens = Vec::with_capacity(input.len());
     let mut chars = input.chars().peekable();
 
@@ -273,7 +273,7 @@ fn consume_until_new_token<I: Iterator<Item = char>>(input: &mut I) -> String {
         .collect()
 }
 
-pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     let mut e1 = e_expr(token_list)?;
     let mut index = e1.tokens_read;
 
@@ -377,7 +377,7 @@ pub fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     Ok(e1)
 }
 // Addition and subtraction
-pub fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     let mut t1 = t_expr(token_list)?;
     let mut index = t1.tokens_read;
 
@@ -402,7 +402,7 @@ pub fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 // Multiplication and division
-pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     let mut f1 = f_expr(token_list)?;
     let mut index = f1.tokens_read;
 
@@ -442,7 +442,7 @@ pub fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 // Exponentiation
-pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     let mut g1 = g_expr(token_list)?; //was g1
     let mut index = g1.tokens_read;
     let token_len = token_list.len();
@@ -472,7 +472,7 @@ pub fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 // Numbers and parenthesized expressions
-pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     if !token_list.is_empty() {
         match token_list[0] {
             Token::Number(n) => Ok(IntermediateResult::new(n, 1)),
@@ -524,7 +524,7 @@ pub fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 
-pub fn parse(tokens: &[Token]) -> Result<f64, CalcError> {
+fn parse(tokens: &[Token]) -> Result<f64, CalcError> {
     d_expr(tokens).map(|answer| answer.value)
 }
 
