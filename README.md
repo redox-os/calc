@@ -12,12 +12,12 @@
 Add `calc` as a dependency in your `Cargo.toml`:
 ```toml
 [dependencies]
-calc = "0.1.*"
+calculate = "0.1.*"
 ```
 
 Then make use of the library functions:
 ```rust
-extern crate calc;
+extern crate calculate;
 
 use calc::eval;
 use std::io::{self, BufRead, stdout, stdin, Write};

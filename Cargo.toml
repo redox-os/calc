@@ -1,5 +1,5 @@
 [package]
-name = "calc"
+name = "calculate"
 version = "0.1.0"
 authors = ["Hunter Goldstein <hunter.d.goldstein@gmail.com>"]
 description = "Rust library for parsing and processing arithmetic expressions"
