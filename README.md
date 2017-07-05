@@ -17,7 +17,7 @@ calculate = "0.1.*"
 
 Then make use of the library functions:
 ```rust
-extern crate calculate;
+extern crate calc;
 
 use calc::eval;
 use std::io::{self, BufRead, stdout, stdin, Write};
