@@ -1,5 +1,7 @@
 # calc
 [![Build Status](https://travis-ci.org/redox-os/calc.svg?branch=master)](https://travis-ci.org/redox-os/calc)
+[![crates.io](https://meritbadge.herokuapp.com/calculate)](https://crates.io/crates/calculate)
+
 
 `calc` is a Rust library for tokenizing and evaluating arithmetic expressions with a command line application of the same name included.
 
