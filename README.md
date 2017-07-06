@@ -3,11 +3,11 @@
 
 `calc` is a Rust library for tokenizing and evaluating arithmetic expressions with a command line application of the same name included.
 
+**NOTE**: The name of the project, binary, and library are `calc` but the package name is `calculate`. This will remain depending on if this project can acquire the `calc` crate which is currently being squatted on.
+
 # Usage
 
 ## As a Library
-
-**NOTE**: `calc` is currently claimed by another individual so this package has _not yet been published_ and may undergo a name change.
 
 Add `calc` as a dependency in your `Cargo.toml`:
 ```toml
@@ -38,4 +38,8 @@ fn main() {
 
 ## As an Executable
 
-Coming Soon!
+```bash
+$ cargo install calculate
+...
+$ calc
+```
