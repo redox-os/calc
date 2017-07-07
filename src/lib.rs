@@ -512,28 +512,23 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::OpenParen => {
-                let expr = d_expr(&token_list[1..]);
-                match expr {
-                    Ok(ir) => {
-                        let close_paren = ir.tokens_read + 1;
-                        if close_paren < token_list.len() {
-                            match token_list[close_paren] {
-                                Token::CloseParen => Ok(
-                                    IntermediateResult::new(
-                                        ir.value,
-                                        close_paren + 1,
-                                    ),
-                                ),
-                                _ => Err(CalcError::UnexpectedToken(
-                                    token_list[close_paren].to_string(),
-                                    ")",
-                                )),
-                            }
-                        } else {
-                            Err(CalcError::UnmatchedParenthesis)
-                        }
+                let ir = d_expr(&token_list[1..])?;
+                let close_paren = ir.tokens_read + 1;
+                if close_paren < token_list.len() {
+                    match token_list[close_paren] {
+                        Token::CloseParen => Ok(
+                            IntermediateResult::new(
+                                ir.value,
+                                close_paren + 1,
+                            ),
+                        ),
+                        _ => Err(CalcError::UnexpectedToken(
+                            token_list[close_paren].to_string(),
+                            ")",
+                        )),
                     }
-                    Err(e) => Err(e),
+                } else {
+                    Err(CalcError::UnmatchedParenthesis)
                 }
             }
             _ => Err(CalcError::UnexpectedToken(
