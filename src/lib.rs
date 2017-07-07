@@ -7,7 +7,6 @@ use self::CalcError::*;
 
 use std::error::Error;
 use std::fmt;
-use std::io;
 use std::iter::Peekable;
 use std::num::ParseFloatError;
 
@@ -65,7 +64,7 @@ impl fmt::Display for Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CalcError {
     DivideByZero,
     InvalidNumber(String),
@@ -74,7 +73,6 @@ pub enum CalcError {
     UnexpectedToken(String, &'static str),
     UnexpectedEndOfInput,
     UnmatchedParenthesis,
-    IO(io::Error),
 }
 
 impl From<CalcError> for String {
@@ -87,7 +85,7 @@ impl From<CalcError> for String {
             InvalidOperator(character) => {
                 format!("calc: invalid operator: {}", character)
             }
-            IO(error) => error.description().into(),
+            //IO(error) => error.description().into(),
             UnrecognizedToken(token) => {
                 ["calc: unrecognized token: ", &token].concat()
             }
@@ -97,14 +95,6 @@ impl From<CalcError> for String {
             UnexpectedEndOfInput => "calc: unexpected end of input".into(),
             UnmatchedParenthesis => "calc: unmatched parenthesis".into(),
         }
-    }
-}
-
-// By implementing this, we can have Rust automatically cast io::Errors into
-// calc errors, which reduces noise
-impl From<io::Error> for CalcError {
-    fn from(data: io::Error) -> CalcError {
-        CalcError::IO(data)
     }
 }
 

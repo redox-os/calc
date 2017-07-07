@@ -1,14 +1,5 @@
 use super::*;
 
-/// For some string input, compare `eval(_)` against the expected output
-fn compare(input: &str, expected: f64) {
-    if let Ok(output) = eval(input) {
-        assert_eq!(output, expected);
-    } else {
-        assert!(false);
-    }
-}
-
 #[test]
 fn basics() {
     let cases = vec![
@@ -17,9 +8,11 @@ fn basics() {
         (" 2 << 16 ", 131072.0),
         (" ((4 * 18) % 17) / 3", 4.0 / 3.0),
         ("2²³²", 4096.0),
+        ("4 ^ 3 ^ 2 ^ 3 ^ 4 ^ 2", 0.0),
+        ("3 << (4 >> 2)", 6.0),
     ];
     for (input, expected) in cases {
-        compare(input, expected);
+        assert_eq!(eval(input), Ok(expected));
     }
 }
 
@@ -41,11 +34,7 @@ fn tokens() {
         Token::Number(2.0),
         Token::CloseParen,
     ];
-    if let Ok(tokens) = tokenize(line) {
-        assert_eq!(tokens, expected);
-    } else {
-        assert!(false);
-    }
+    assert_eq!(tokenize(line), Ok(expected));
 }
 
 #[test]
@@ -64,6 +53,6 @@ fn random() {
     ];
 
     for (input, expected) in cases {
-        compare(input, expected);
+        assert_eq!(eval(input), Ok(expected));
     }
 }

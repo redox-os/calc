@@ -14,7 +14,21 @@ pub fn prompt<W: Write>(out: &mut W) -> io::Result<()> {
     out.flush()
 }
 
-pub fn calc(args: Vec<String>) -> Result<(), CalcError> {
+#[derive(Debug)]
+pub enum RuntimeError {
+    Calc(CalcError),
+    IO(io::Error),
+}
+
+impl From<CalcError> for RuntimeError {
+    fn from(data: CalcError) -> RuntimeError { RuntimeError::Calc(data) }
+}
+
+impl From<io::Error> for RuntimeError {
+    fn from(data: io::Error) -> RuntimeError { RuntimeError::IO(data) }
+}
+
+pub fn calc(args: Vec<String>) -> Result<(), RuntimeError> {
     let stdout = stdout();
     let mut stdout = stdout.lock();
     if !args.is_empty() {
@@ -39,7 +53,7 @@ fn main() {
     let code = match calc(args().skip(1).collect()) {
         Ok(()) => 0,
         Err(e) => {
-            println!("{}", String::from(e));
+            println!("{:?}", e);
             1
         }
     };
