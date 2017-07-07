@@ -21,11 +21,15 @@ pub enum RuntimeError {
 }
 
 impl From<CalcError> for RuntimeError {
-    fn from(data: CalcError) -> RuntimeError { RuntimeError::Calc(data) }
+    fn from(data: CalcError) -> RuntimeError {
+        RuntimeError::Calc(data)
+    }
 }
 
 impl From<io::Error> for RuntimeError {
-    fn from(data: io::Error) -> RuntimeError { RuntimeError::IO(data) }
+    fn from(data: io::Error) -> RuntimeError {
+        RuntimeError::IO(data)
+    }
 }
 
 pub fn calc(args: Vec<String>) -> Result<(), RuntimeError> {
