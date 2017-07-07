@@ -75,25 +75,22 @@ pub enum CalcError {
     UnmatchedParenthesis,
 }
 
-impl From<CalcError> for String {
-    fn from(data: CalcError) -> String {
-        match data {
-            DivideByZero => "calc: attempted to divide by zero".into(),
-            InvalidNumber(number) => {
-                ["calc: invalid number: ", &number].concat()
+impl fmt::Display for CalcError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DivideByZero => write!(f, "attempted to divide by zero"),
+            InvalidNumber(ref number) => {
+                write!(f, "invalid number: {}", number)
             }
-            InvalidOperator(character) => {
-                format!("calc: invalid operator: {}", character)
+            InvalidOperator(ref c) => write!(f, "invalid operator: {}", c),
+            UnrecognizedToken(ref token) => {
+                write!(f, "unrecognized token: {}", token)
             }
-            //IO(error) => error.description().into(),
-            UnrecognizedToken(token) => {
-                ["calc: unrecognized token: ", &token].concat()
+            UnexpectedToken(ref token, ref kind) => {
+                write!(f, "expected {} token, got {} instead", kind, token)
             }
-            UnexpectedToken(token, kind) => {
-                ["calc: unexpected ", kind, " token: ", &token].concat()
-            }
-            UnexpectedEndOfInput => "calc: unexpected end of input".into(),
-            UnmatchedParenthesis => "calc: unmatched parenthesis".into(),
+            UnexpectedEndOfInput => write!(f, "unexpected end of input"),
+            UnmatchedParenthesis => write!(f, "unmatched patenthesis"),
         }
     }
 }

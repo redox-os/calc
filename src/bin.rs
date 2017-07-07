@@ -1,5 +1,6 @@
 extern crate calc;
 
+use std::fmt;
 use std::env::args;
 use std::process::exit;
 
@@ -14,7 +15,6 @@ pub fn prompt<W: Write>(out: &mut W) -> io::Result<()> {
     out.flush()
 }
 
-#[derive(Debug)]
 pub enum RuntimeError {
     Calc(CalcError),
     IO(io::Error),
@@ -29,6 +29,15 @@ impl From<CalcError> for RuntimeError {
 impl From<io::Error> for RuntimeError {
     fn from(data: io::Error) -> RuntimeError {
         RuntimeError::IO(data)
+    }
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            RuntimeError::Calc(ref c) => write!(f, "calc: {}", c),
+            RuntimeError::IO(ref e) => write!(f, "calc: {}", e),
+        }
     }
 }
 
@@ -57,7 +66,7 @@ fn main() {
     let code = match calc(args().skip(1).collect()) {
         Ok(()) => 0,
         Err(e) => {
-            println!("{:?}", e);
+            println!("{}", e);
             1
         }
     };
