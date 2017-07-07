@@ -276,14 +276,16 @@ fn consume_until_new_token<I: Iterator<Item = char>>(input: &mut I) -> String {
         .collect()
 }
 
-fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn d_expr<I>(token_list: &mut I) -> Result<IntermediateResult, CalcError>
+    where I: Iterator<Item = Token>
+{
     let mut e1 = e_expr(token_list)?;
     let mut index = e1.tokens_read;
 
-    while index < token_list.len() {
-        match token_list[index] {
+    while let Some(token) = token_list.next() {
+        match token {
             Token::BitWiseAnd => {
-                let e2 = e_expr(&token_list[index + 1..])?;
+                let e2 = e_expr(token_list)?;
                 if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
@@ -299,7 +301,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::BitWiseOr => {
-                let e2 = e_expr(&token_list[index + 1..])?;
+                let e2 = e_expr(token_list)?;
                 if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
@@ -331,7 +333,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::BitWiseXor => {
-                let e2 = e_expr(&token_list[index + 1..])?;
+                let e2 = e_expr(token_list)?;
                 if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
@@ -347,7 +349,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::BitWiseLShift => {
-                let e2 = e_expr(&token_list[index + 1..])?;
+                let e2 = e_expr(token_list)?;
                 if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
@@ -363,7 +365,7 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::BitWiseRShift => {
-                let e2 = e_expr(&token_list[index + 1..])?;
+                let e2 = e_expr(token_list)?;
                 if e1.is_whole() && e2.is_whole() {
                     let mut int_f = e1.value.floor() as i64;
                     let int_s = e2.value.floor() as i64;
@@ -390,19 +392,21 @@ fn d_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     Ok(e1)
 }
 // Addition and subtraction
-fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn e_expr<I>(token_list: &mut I) -> Result<IntermediateResult, CalcError>
+    where I: Iterator<Item = Token>
+{
     let mut t1 = t_expr(token_list)?;
     let mut index = t1.tokens_read;
 
-    while index < token_list.len() {
-        match token_list[index] {
+    while let Some(token) = token_list.next() {
+        match token {
             Token::Plus => {
-                let t2 = t_expr(&token_list[index + 1..])?;
+                let t2 = t_expr(token_list)?;
                 t1.value += t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
             Token::Minus => {
-                let t2 = t_expr(&token_list[index + 1..])?;
+                let t2 = t_expr(token_list)?;
                 t1.value -= t2.value;
                 t1.tokens_read += t2.tokens_read + 1;
             }
@@ -419,19 +423,21 @@ fn e_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 // Multiplication and division
-fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn t_expr<I>(token_list: &mut I) -> Result<IntermediateResult, CalcError>
+    where I: Iterator<Item = Token>
+{
     let mut f1 = f_expr(token_list)?;
     let mut index = f1.tokens_read;
 
-    while index < token_list.len() {
-        match token_list[index] {
+    while let Some(token) = token_list.next() {
+        match token {
             Token::Multiply => {
-                let f2 = f_expr(&token_list[index + 1..])?;
+                let f2 = f_expr(token_list)?;
                 f1.value *= f2.value;
                 f1.tokens_read += f2.tokens_read + 1;
             }
             Token::Divide => {
-                let f2 = f_expr(&token_list[index + 1..])?;
+                let f2 = f_expr(token_list)?;
                 if f2.value == 0.0 {
                     return Err(CalcError::DivideByZero);
                 } else {
@@ -440,7 +446,7 @@ fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 }
             }
             Token::Modulo => {
-                let f2 = f_expr(&token_list[index + 1..])?;
+                let f2 = f_expr(token_list)?;
                 if f2.value == 0.0 {
                     return Err(CalcError::DivideByZero);
                 } else {
@@ -461,14 +467,15 @@ fn t_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 // Exponentiation
-fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
+fn f_expr<I>(token_list: &mut I) -> Result<IntermediateResult, CalcError>
+    where I: Iterator<Item = Token>
+{
     let mut g1 = g_expr(token_list)?; //was g1
     let mut index = g1.tokens_read;
-    let token_len = token_list.len();
-    while index < token_len {
-        match token_list[index] {
+    while let Some(token) = token_list.next() {
+        match token {
             Token::Exponent => {
-                let f = f_expr(&token_list[index + 1..])?;
+                let f = f_expr(token_list)?;
                 g1.value = g1.value.powf(f.value);
                 g1.tokens_read += f.tokens_read + 1;
             }
@@ -493,53 +500,41 @@ fn f_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 // Numbers and parenthesized expressions
-fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
-    if !token_list.is_empty() {
-        match token_list[0] {
+fn g_expr<I>(token_list: &mut I) -> Result<IntermediateResult, CalcError>
+    where I: Iterator<Item = Token>
+{
+    if let Some(token) = token_list.next() {
+        match token {
             Token::Number(n) => Ok(IntermediateResult::new(n, 1)),
             Token::Minus => {
-                if token_list.len() > 1 {
-                    if let Token::Number(ref n) = token_list[1] {
-                        Ok(IntermediateResult::new(-n, 2))
-                    } else {
-                        Err(CalcError::UnexpectedToken(
-                            token_list[1].to_string(),
-                            "number",
-                        ))
+                match token_list.next() {
+                    Some(Token::Number(n)) => Ok(
+                        IntermediateResult::new(-n, 2),
+                    ),
+                    Some(tok) => {
+                        Err(
+                            CalcError::UnexpectedToken(tok.to_string(), "number"),
+                        )
                     }
-                } else {
-                    Err(CalcError::UnexpectedEndOfInput)
+                    None => Err(CalcError::UnexpectedEndOfInput),
                 }
             }
             Token::OpenParen => {
-                let expr = d_expr(&token_list[1..]);
-                match expr {
-                    Ok(ir) => {
-                        let close_paren = ir.tokens_read + 1;
-                        if close_paren < token_list.len() {
-                            match token_list[close_paren] {
-                                Token::CloseParen => Ok(
-                                    IntermediateResult::new(
-                                        ir.value,
-                                        close_paren + 1,
-                                    ),
-                                ),
-                                _ => Err(CalcError::UnexpectedToken(
-                                    token_list[close_paren].to_string(),
-                                    ")",
-                                )),
-                            }
-                        } else {
-                            Err(CalcError::UnmatchedParenthesis)
-                        }
+                let ir = d_expr(token_list)?;
+                match token_list.next() {
+                    Some(Token::CloseParen) => {
+                        Ok(
+                            IntermediateResult::new(ir.value, ir.tokens_read + 1),
+                        )
                     }
-                    Err(e) => Err(e),
+                    Some(tok) => Err(CalcError::UnexpectedToken(
+                        tok.to_string(),
+                        ")",
+                    )),
+                    None => Err(CalcError::UnmatchedParenthesis),
                 }
             }
-            _ => Err(CalcError::UnexpectedToken(
-                token_list[0].to_string(),
-                "number",
-            )),
+            tok => Err(CalcError::UnexpectedToken(tok.to_string(), "number")),
         }
     } else {
         Err(CalcError::UnexpectedEndOfInput)
@@ -547,10 +542,11 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
 }
 
 
-fn parse(tokens: &[Token]) -> Result<f64, CalcError> {
-    d_expr(tokens).map(|answer| answer.value)
+fn parse(tokens: Vec<Token>) -> Result<f64, CalcError> {
+    let mut iter = tokens.into_iter();
+    d_expr(&mut iter).map(|answer| answer.value)
 }
 
 pub fn eval(input: &str) -> Result<f64, CalcError> {
-    tokenize(input).and_then(|x| parse(&x))
+    tokenize(input).and_then(|x| parse(x))
 }
