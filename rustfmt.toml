@@ -1,4 +1,6 @@
 error_on_line_overflow = false
 max_width = 80
+fn_call_width = 80
 write_mode = "overwrite"
 where_style = "legacy"
+wrap_comments = true
