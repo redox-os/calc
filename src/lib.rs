@@ -513,12 +513,10 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 let close_paren = ir.tokens_read + 1;
                 if close_paren < token_list.len() {
                     match token_list[close_paren] {
-                        Token::CloseParen => Ok(
-                            IntermediateResult::new(
-                                ir.value,
-                                close_paren + 1,
-                            ),
-                        ),
+                        Token::CloseParen => Ok(IntermediateResult::new(
+                            ir.value,
+                            close_paren + 1,
+                        )),
                         _ => Err(CalcError::UnexpectedToken(
                             token_list[close_paren].to_string(),
                             ")",
