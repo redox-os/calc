@@ -58,7 +58,7 @@ impl fmt::Display for Token {
             Token::Modulo => write!(f, "Modulo"),
             Token::OpenParen => write!(f, "OpenParen"),
             Token::CloseParen => write!(f, "CloseParen"),
-            Token::Number(n) => write!(f, "Number({})", n),
+            Token::Number(n) => write!(f, "'{}'", n),
             Token::Atom(ref s) => write!(f, "'{}'", s),
         }
     }
