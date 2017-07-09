@@ -44,30 +44,29 @@ pub enum Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let tok = match *self {
-            Token::Plus => "Plus",
-            Token::Minus => "Minus",
-            Token::Divide => "Divide",
-            Token::Multiply => "Multiply",
-            Token::Exponent => "Exponent",
-            Token::Square => "Square",
-            Token::Cube => "Cube",
-            Token::BitWiseAnd => "And",
-            Token::BitWiseOr => "Or",
-            Token::BitWiseXor => "Xor",
-            Token::BitWiseNot => "Not",
-            Token::BitWiseRShift => "RShift",
-            Token::BitWiseLShift => "LShift",
-            Token::Logarithm => "Logarithm",
-            Token::Cosine => "Cosine",
-            Token::Sine => "Sine",
-            Token::Tangent => "Tangent",
-            Token::Modulo => "Modulo",
-            Token::OpenParen => "OpenParen",
-            Token::CloseParen => "CloseParen",
-            Token::Number(_) => "Number",
-        };
-        write!(f, "{}", tok)
+        match *self {
+            Token::Plus => write!(f, "Plus"),
+            Token::Minus => write!(f, "Minus"),
+            Token::Divide => write!(f, "Divide"),
+            Token::Multiply => write!(f, "Multiply"),
+            Token::Exponent => write!(f, "Exponent"),
+            Token::Square => write!(f, "Square"),
+            Token::Cube => write!(f, "Cube"),
+            Token::BitWiseAnd => write!(f, "And"),
+            Token::BitWiseOr => write!(f, "Or"),
+            Token::BitWiseXor => write!(f, "Xor"),
+            Token::BitWiseNot => write!(f, "Not"),
+            Token::BitWiseRShift => write!(f, "RShift"),
+            Token::BitWiseLShift => write!(f, "LShift"),
+            Token::Logarithm => write!(f, "Logarithm"),
+            Token::Cosine => write!(f, "Cosine"),
+            Token::Sine => write!(f, "Sine"),
+            Token::Tangent => write!(f, "Tangent"),
+            Token::Modulo => write!(f, "Modulo"),
+            Token::OpenParen => write!(f, "OpenParen"),
+            Token::CloseParen => write!(f, "CloseParen"),
+            Token::Number(n) => write!(f, "Number({})", n),
+        }
     }
 }
 
