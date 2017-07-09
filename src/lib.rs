@@ -42,7 +42,6 @@ pub enum Token {
     Number(f64),
 }
 
-
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let tok = match *self {
@@ -84,26 +83,23 @@ pub enum CalcError {
     NoFunctionArgument,
 }
 
-impl From<CalcError> for String {
-    fn from(data: CalcError) -> String {
-        match data {
-            DivideByZero => "calc: attempted to divide by zero".into(),
-            InvalidNumber(number) => {
-                ["calc: invalid number: ", &number].concat()
+impl fmt::Display for CalcError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            DivideByZero => write!(f, "attempted to divide by zero"),
+            InvalidNumber(ref number) => {
+                write!(f, "invalid number: {}", number)
             }
-            InvalidOperator(character) => {
-                format!("calc: invalid operator: {}", character)
+            InvalidOperator(ref c) => write!(f, "invalid operator: {}", c),
+            UnrecognizedToken(ref token) => {
+                write!(f, "unrecognized token: {}", token)
             }
-            //IO(error) => error.description().into(),
-            UnrecognizedToken(token) => {
-                ["calc: unrecognized token: ", &token].concat()
+            UnexpectedToken(ref token, ref kind) => {
+                write!(f, "expected {} token, got {} instead", kind, token)
             }
-            UnexpectedToken(token, kind) => {
-                ["calc: unexpected ", kind, " token: ", &token].concat()
-            }
-            UnexpectedEndOfInput => "calc: unexpected end of input".into(),
-            UnmatchedParenthesis => "calc: unmatched parenthesis".into(),
-            NoFunctionArgument => "calc: no bracketed function argument".into(),
+            UnexpectedEndOfInput => write!(f, "unexpected end of input"),
+            UnmatchedParenthesis => write!(f, "unmatched patenthesis"),
+            NoFunctionArgument => write!(f, "no bracketed function argument"),
         }
     }
 }
@@ -574,7 +570,7 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                                     Token::Logarithm => {
                                         val = ir.value.log(10.0)
                                     }
-                                    _ => val = 0.0, //TODO: maybe get this outta the way too
+                                    _ => unreachable!(), //TODO: maybe get this outta the way too
                                 }
                                 Ok(
                                     IntermediateResult::new(val, close_paren + 1),
