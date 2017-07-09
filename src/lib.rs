@@ -137,7 +137,7 @@ enum OperatorState {
     PotentiallyIncomplete,
     Complete,
     NotAnOperator,
-    Function
+    Function,
 }
 
 trait IsOperator {
@@ -148,7 +148,8 @@ impl IsOperator for char {
     fn is_operator(self) -> bool {
         match self {
             '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' |
-            '%' | '(' | ')' | '*' | '<' | 'l' | 'o' | 'g'|'c' | 's' | 'i' |'n'| 'a' | 't'=> true,
+            '%' | '(' | ')' | '*' | '<' | 'l' | 'o' | 'g' | 'c' | 's' |
+            'i' | 'n' | 'a' | 't' => true,
             _ => false,
         }
     }
@@ -163,8 +164,10 @@ impl CheckOperator for char {
         match self {
             '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%' |
             '(' | ')' => OperatorState::Complete,
-            '*' | '<' | '>'  => OperatorState::PotentiallyIncomplete,
-            'l' | 'o' | 'g'|'c' | 's' | 'i' |'n'| 'a' | 't' => OperatorState::Function,
+            '*' | '<' | '>' => OperatorState::PotentiallyIncomplete,
+            'l' | 'o' | 'g' | 'c' | 's' | 'i' | 'n' | 'a' | 't' => {
+                OperatorState::Function
+            }
             _ => OperatorState::NotAnOperator,
         }
     }
@@ -176,7 +179,7 @@ trait OperatorMatch {
 
 impl OperatorMatch for [char; 3] {
     fn operator_type(self) -> Option<Token> {
-        if self == ['l', 'o','g'] {
+        if self == ['l', 'o', 'g'] {
             Some(Token::Logarithm)
         } else if self == ['c', 'o', 's'] {
             Some(Token::Cosine)
@@ -267,28 +270,29 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                         Some(&next_char) if next_char.is_operator() => {
                             chars.next();
                             match chars.peek() {
-                                Some(&sec_next_char) if sec_next_char.is_operator() => {
+                                Some(&sec_next_char)
+                                    if sec_next_char.is_operator() => {
                                     tokens.push(
-                                        [c, next_char,sec_next_char].operator_type().ok_or_else(
-                                        || {
-                                        InvalidOperator(c)
-                                        },
-                                        )?,
+                                        [c, next_char, sec_next_char]
+                                            .operator_type()
+                                            .ok_or_else(|| InvalidOperator(c))?,
                                     );
-                                chars.next();
-                                },
+                                    chars.next();
+                                }
                                 _ => {
-                                    tokens.push(c.operator_type().ok_or_else(
-                                    || InvalidOperator(c),
-                                    )?);
-                                },
+                                    tokens.push(
+                                        c.operator_type().ok_or_else(|| {
+                                            InvalidOperator(c)
+                                        })?,
+                                    );
+                                }
                             }
                         }
                         _ => {
-                                    tokens.push(c.operator_type().ok_or_else(
-                                    || InvalidOperator(c),
-                                    )?);
-                                }
+                            tokens.push(c.operator_type().ok_or_else(
+                                || InvalidOperator(c),
+                            )?);
+                        }
                     }
                 } //TODO: add functions to calculate!!!
                 OperatorState::NotAnOperator => {
@@ -563,30 +567,28 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                         match token_list[close_paren] {
                             Token::CloseParen => {
                                 let mut val = 0.0; //TODO: not declare this val here like the warningwants
-                                match token_list[0]{
-                                    Token::Cosine => val=ir.value.cos(),
-                                    Token::Sine => val=ir.value.sin(),
-                                    Token::Tangent => val=ir.value.tan(),
-                                    Token::Logarithm => val=ir.value.log(10.0),
-                                    _ => val=0.0, //TODO: maybe get this outta the way too
+                                match token_list[0] {
+                                    Token::Cosine => val = ir.value.cos(),
+                                    Token::Sine => val = ir.value.sin(),
+                                    Token::Tangent => val = ir.value.tan(),
+                                    Token::Logarithm => {
+                                        val = ir.value.log(10.0)
+                                    }
+                                    _ => val = 0.0, //TODO: maybe get this outta the way too
                                 }
                                 Ok(
-                                    IntermediateResult::new(
-                                        val,
-                                        close_paren + 1,
-                                    ),
+                                    IntermediateResult::new(val, close_paren + 1),
                                 )
-                            },
+                            }
                             _ => Err(CalcError::UnexpectedToken(
-                             token_list[close_paren].to_string(),
+                                token_list[close_paren].to_string(),
                                 ")",
                             )),
                         }
                     } else {
                         Err(CalcError::UnmatchedParenthesis)
                     }
-                }
-                else {
+                } else {
                     Err(CalcError::NoFunctionArgument) //actually lack of an argument
                 }
 
@@ -610,12 +612,10 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                 let close_paren = ir.tokens_read + 1;
                 if close_paren < token_list.len() {
                     match token_list[close_paren] {
-                        Token::CloseParen => Ok(
-                            IntermediateResult::new(
-                                ir.value,
-                                close_paren + 1,
-                            ),
-                        ),
+                        Token::CloseParen => Ok(IntermediateResult::new(
+                            ir.value,
+                            close_paren + 1,
+                        )),
                         _ => Err(CalcError::UnexpectedToken(
                             token_list[close_paren].to_string(),
                             ")",
