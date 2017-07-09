@@ -570,7 +570,7 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                                     Token::Logarithm => {
                                         val = ir.value.log(10.0)
                                     }
-                                    _ => unreachable!(), //TODO: maybe get this outta the way too
+                                    _ => unreachable!(),
                                 }
                                 Ok(
                                     IntermediateResult::new(val, close_paren + 1),
