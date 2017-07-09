@@ -29,7 +29,7 @@ pub enum Token {
     Logarithm,
     Cosine,
     Sine,
-    Tangens,
+    Tangent,
     BitWiseAnd,
     BitWiseOr,
     BitWiseXor,
@@ -62,7 +62,7 @@ impl fmt::Display for Token {
             Token::Logarithm => "Logarithm",
             Token::Cosine => "Cosine",
             Token::Sine => "Sine",
-            Token::Tangens => "Tangens",
+            Token::Tangent => "Tangent",
             Token::Modulo => "Modulo",
             Token::OpenParen => "OpenParen",
             Token::CloseParen => "CloseParen",
@@ -183,7 +183,7 @@ impl OperatorMatch for [char; 3] {
         } else if self == ['s', 'i', 'n'] {
             Some(Token::Sine)
         } else if self == ['t', 'a', 'n'] {
-            Some(Token::Tangens)
+            Some(Token::Tangent)
         } else {
             None
         }
@@ -555,7 +555,7 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
     if !token_list.is_empty() {
         match token_list[0] {
             Token::Number(n) => Ok(IntermediateResult::new(n, 1)),
-            Token::Cosine | Token::Sine | Token::Tangens | Token::Logarithm => {
+            Token::Cosine | Token::Sine | Token::Tangent | Token::Logarithm => {
                 if token_list[1] == Token::OpenParen {
                     let ir = d_expr(&token_list[2..])?;
                     let close_paren = ir.tokens_read + 2;
@@ -566,7 +566,7 @@ fn g_expr(token_list: &[Token]) -> Result<IntermediateResult, CalcError> {
                                 match token_list[0]{
                                     Token::Cosine => val=ir.value.cos(),
                                     Token::Sine => val=ir.value.sin(),
-                                    Token::Tangens => val=ir.value.tan(),
+                                    Token::Tangent => val=ir.value.tan(),
                                     Token::Logarithm => val=ir.value.log(10.0),
                                     _ => val=0.0, //TODO: maybe get this outta the way too
                                 }
