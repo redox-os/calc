@@ -568,7 +568,7 @@ fn g_expr<E>(
                     let mut args = Vec::new();
                     let mut start = 1;
                     for _ in 0..nargs {
-                        let ir = d_expr(&token_list[start..], env)?;
+                        let ir = g_expr(&token_list[start..], env)?;
                         start += ir.tokens_read;
                         args.push(ir);
                     }
