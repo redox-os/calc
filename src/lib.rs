@@ -322,6 +322,23 @@ fn d_expr<E>(
 ) -> Result<IntermediateResult, CalcError>
     where E: Environment
 {
+
+    if !token_list.is_empty() && token_list[0] == Token::BitWiseNot {
+        let mut e = e_expr(&token_list[1..], env)?;
+        if e.is_whole() {
+            let mut int_f = e.value.floor() as i64;
+            int_f = !(int_f);
+            e.value = int_f as f64;
+            e.tokens_read += 1;
+            return Ok(e);
+        } else {
+            return Err(CalcError::UnexpectedToken(
+                e.value.to_string(),
+                "Not an integer number!",
+            ));
+        }
+    }
+
     let mut e1 = e_expr(token_list, env)?;
     let mut index = e1.tokens_read;
 
@@ -355,23 +372,6 @@ fn d_expr<E>(
                     return Err(CalcError::UnexpectedToken(
                         (if e1.is_whole() { e2.value } else { e1.value })
                             .to_string(),
-                        "Not an integer number!",
-                    ));
-                }
-            }
-            Token::BitWiseNot => {
-                if e1.is_whole() {
-                    let mut int_f = e1.value.floor() as i64;
-                    // magic number: bigest integer representable by f64 is 2^53, which is 0b1<<54 according to https://stackoverflow.com/questions/1848700/biggest-integer-that-can-be-stored-in-a-double
-                    // make a mask by shifting 11... between the sign bit and
-                    // the number to effectively get a 55 bit signed number
-                    // let mask = 0b111111111 << 54;
-                    int_f = !(int_f);
-                    e1.value = int_f as f64;
-                    e1.tokens_read += 1;
-                } else {
-                    return Err(CalcError::UnexpectedToken(
-                        e1.value.to_string(),
                         "Not an integer number!",
                     ));
                 }
@@ -579,18 +579,10 @@ fn g_expr<E>(
                 }
             }
             Token::Minus => {
-                if token_list.len() > 1 {
-                    if let Token::Number(ref n) = token_list[1] {
-                        Ok(IntermediateResult::new(-n, 2))
-                    } else {
-                        Err(CalcError::UnexpectedToken(
-                            token_list[1].to_string(),
-                            "number",
-                        ))
-                    }
-                } else {
-                    Err(CalcError::UnexpectedEndOfInput)
-                }
+                let mut ir = d_expr(&token_list[1..], env)?;
+                ir.value = -ir.value;
+                ir.tokens_read += 1;
+                Ok(ir)
             }
             Token::OpenParen => {
                 let ir = d_expr(&token_list[1..], env)?;
@@ -625,7 +617,7 @@ pub struct DefaultEnvironment;
 impl Environment for DefaultEnvironment {
     fn arity(&self, atom: &str) -> Option<usize> {
         match atom {
-            "pi" => Some(0),
+            "pi" | "tau" => Some(0),
             "log" | "sin" | "cos" | "tan" => Some(1),
             _ => None,
         }
