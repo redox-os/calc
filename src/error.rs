@@ -1,7 +1,7 @@
 use std::fmt;
 use std::error::Error;
 
-use std::num::ParseFloatError;
+use std::num::{ParseIntError, ParseFloatError};
 
 #[derive(Debug, PartialEq)]
 pub enum CalcError {
@@ -44,6 +44,12 @@ impl fmt::Display for CalcError {
 
 impl From<ParseFloatError> for CalcError {
     fn from(data: ParseFloatError) -> CalcError {
+        CalcError::InvalidNumber(data.description().into())
+    }
+}
+
+impl From<ParseIntError> for CalcError {
+    fn from(data: ParseIntError) -> CalcError {
         CalcError::InvalidNumber(data.description().into())
     }
 }

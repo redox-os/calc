@@ -1,3 +1,4 @@
+use std::i64;
 use std::fmt;
 use std::iter::Peekable;
 
@@ -133,9 +134,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     while let Some(&c) = chars.peek() {
         if c.is_alphabetic() {
             tokens.push(Token::Atom(consume_atom(&mut chars)));
-        } else if c.is_digit(10) || c == '.' {
-            let token_string = consume_number(&mut chars);
-            tokens.push(Token::Number(token_string.parse()?));
+        } else if c.is_digit(16) || c == '.' {
+            tokens.push(consume_number(&mut chars)?);
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
@@ -178,18 +178,12 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     Ok(tokens)
 }
 
-fn consume_number<I: Iterator<Item = char>>(input: &mut Peekable<I>) -> String {
+fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
+    where I: Iterator<Item=char>
+{
     let mut number = String::new();
-    let mut has_decimal_point = false;
     while let Some(&c) = input.peek() {
-        if c == '.' {
-            if has_decimal_point {
-                break;
-            } else {
-                number.push(c);
-                has_decimal_point = true;
-            }
-        } else if c.is_digit(10) {
+        if c.is_digit(radix) {
             number.push(c);
         } else {
             break;
@@ -197,6 +191,36 @@ fn consume_number<I: Iterator<Item = char>>(input: &mut Peekable<I>) -> String {
         input.next();
     }
     number
+}
+
+fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError> 
+    where I: Iterator<Item=char>
+{
+    match input.peek() {
+        Some(&'0') => {
+            input.next();
+            match input.peek() {
+                Some(&'x') | Some(&'X') => {
+                    input.next();
+                    let digits = digits(input, 16);
+                    let num = i64::from_str_radix(&digits, 16)?;
+                    return Ok(Token::Number(num as f64));
+                }
+                Some(&_) => (),
+                None => return Ok(Token::Number(0.0)),
+            }
+        }
+        Some(_) => (),
+        None => return Err(CalcError::UnexpectedEndOfInput)
+    }
+    let whole = digits(input, 10);
+    if let Some(&'.') = input.peek() {
+        input.next();
+        let frac = digits(input, 10);
+        Ok(Token::Number([whole, ".".into(), frac].concat().parse()?))
+    } else {
+        Ok(Token::Number(whole.parse()?))
+    }
 }
 
 /// Consume a valid atom. An atom is defined by:
@@ -258,6 +282,17 @@ mod tests {
             Token::Divide,
             Token::Atom("log".into()),
             Token::Number(2.0),
+        ];
+        assert_eq!(tokenize(line), Ok(expected));
+    }
+
+    #[test]
+    fn hexadecimals() {
+        let line = "0xDEADBEEF | 0xC0FFEE";
+        let expected = vec![
+            Token::Number(3735928559.0),
+            Token::BitWiseOr,
+            Token::Number(12648430.0)
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
