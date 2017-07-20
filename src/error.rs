@@ -8,42 +8,50 @@ use std::num::{ParseIntError, ParseFloatError};
 #[derive(Debug, PartialEq)]
 pub enum PartialComp {
     Unary { op: String, arg: String },
-    Binary { op: String, lhs: String, rhs: String }
+    Binary {
+        op: String,
+        lhs: String,
+        rhs: String,
+    },
 }
 
 impl PartialComp {
-
-    pub fn unary<T, U>(op: T, arg: U) -> Self 
-        where T: ToString, U: ToString
+    pub fn unary<T, U>(op: T, arg: U) -> Self
+        where T: ToString,
+              U: ToString
     {
-        PartialComp::Unary {op: op.to_string(), arg: arg.to_string()}
-    }
-
-    pub fn binary<T, U, V>(op: T, lhs: U, rhs: V) -> Self 
-        where T: ToString, U: ToString, V: ToString
-    {
-        PartialComp::Binary { 
-            op: op.to_string(), 
-            lhs: lhs.to_string(), 
-            rhs: rhs.to_string() 
+        PartialComp::Unary {
+            op: op.to_string(),
+            arg: arg.to_string(),
         }
     }
 
+    pub fn binary<T, U, V>(op: T, lhs: U, rhs: V) -> Self
+        where T: ToString,
+              U: ToString,
+              V: ToString
+    {
+        PartialComp::Binary {
+            op: op.to_string(),
+            lhs: lhs.to_string(),
+            rhs: rhs.to_string(),
+        }
+    }
 }
 
 impl fmt::Display for PartialComp {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             PartialComp::Unary { ref op, ref arg } => {
                 write!(f, "{} {}", op, arg)
             }
-            PartialComp::Binary { ref op, ref lhs, ref rhs } => {
-                write!(f, "{} {} {}", lhs, op, rhs)
-            }
+            PartialComp::Binary {
+                ref op,
+                ref lhs,
+                ref rhs,
+            } => write!(f, "{} {} {}", lhs, op, rhs),
         }
     }
-
 }
 
 #[derive(Debug, PartialEq)]

@@ -179,7 +179,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
 }
 
 fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
-    where I: Iterator<Item=char>
+    where I: Iterator<Item = char>
 {
     let mut number = String::new();
     while let Some(&c) = input.peek() {
@@ -193,8 +193,8 @@ fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
     number
 }
 
-fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError> 
-    where I: Iterator<Item=char>
+fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
+    where I: Iterator<Item = char>
 {
     match input.peek() {
         Some(&'0') => {
@@ -211,7 +211,7 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
             }
         }
         Some(_) => (),
-        None => return Err(CalcError::UnexpectedEndOfInput)
+        None => return Err(CalcError::UnexpectedEndOfInput),
     }
     let whole = digits(input, 10);
     if let Some(&'.') = input.peek() {
@@ -292,7 +292,7 @@ mod tests {
         let expected = vec![
             Token::Number(3735928559.0),
             Token::BitWiseOr,
-            Token::Number(12648430.0)
+            Token::Number(12648430.0),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }

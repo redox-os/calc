@@ -23,12 +23,15 @@ impl IntermediateResult {
 
 
 /// Represents a canonical value that can be calculated by this library
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    /// An integral value in decimal form. This is generally interoperable with
-    /// the `Hex` constructor, but will be overriden by the `Hex` constructor.
+    /// An integral value in decimal form. This is generally interoperable
+    /// with
+    /// the `Hex` constructor, but will be overriden by the `Hex`
+    /// constructor.
     Dec(i64),
-    /// An integral value in hexadecimal form. This takes precedence over the
+    /// An integral value in hexadecimal form. This takes precedence over
+    /// the
     /// `Dec` constructor.
     Hex(i64),
     /// A floating point number
@@ -36,7 +39,6 @@ pub enum Value {
 }
 
 impl Value {
-
     pub fn is_zero(&self) -> bool {
         match *self {
             Value::Dec(n) | Value::Hex(n) => n == 0,
@@ -46,9 +48,14 @@ impl Value {
 
     /// Represents a computation that can only operate on, and return,
     /// integer values
-    pub fn intmap<F, T>(self, that: Value, op: T, f: F) 
-        -> Result<Value, CalcError>
-        where F: Fn(i64, i64) -> i64, T: ToString
+    pub fn intmap<F, T>(
+        self,
+        that: Value,
+        op: T,
+        f: F,
+    ) -> Result<Value, CalcError>
+        where F: Fn(i64, i64) -> i64,
+              T: ToString
     {
         match (self, that) {
             (Value::Hex(n), Value::Hex(m)) |
@@ -57,17 +64,16 @@ impl Value {
             (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m))),
             (v1 @ Value::Float(_), v2 @ _) |
             (v1 @ _, v2 @ Value::Float(_)) => {
-                Err(CalcError::BadTypes(
-                    PartialComp::binary(op, v1, v2)
-                ))
+                Err(CalcError::BadTypes(PartialComp::binary(op, v1, v2)))
             }
         }
     }
 
-    /// Represents a computation that will cast integer types to floating point
-    pub fn castmap<F, G, T>(self, that: Value, op: T, f: F, g: G) -> Value
-        where F: Fn(i64, i64) -> i64, G: Fn(f64, f64) -> f64,
-              T: ToString
+    /// Represents a computation that will cast integer types to floating
+    /// point
+    pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Value
+        where F: Fn(i64, i64) -> i64,
+              G: Fn(f64, f64) -> f64
     {
         match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(g(n, m)),
@@ -81,39 +87,53 @@ impl Value {
             (Value::Dec(n), Value::Dec(m)) => Value::Dec(f(n, m)),
         }
     }
-
 }
 
 impl fmt::Display for Value {
-
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Value::Dec(n) => write!(f, "{}", n),
             Value::Hex(n) => write!(f, "{:X}", n),
-            Value::Float(n) => write!(f, "{}", n)
+            Value::Float(n) => write!(f, "{}", n),
         }
     }
-
 }
 
 /// An intermediate result that can be computed by this library.
 /// - `value` represents the current computed data
 /// - `tokens` represents the number of tokens that have been consumed
+#[derive(Clone, Debug, PartialEq)]
 pub struct IR {
     value: Value,
-    pub tokens: usize
+    pub tokens: usize,
 }
 
 impl IR {
+    pub fn value(self) -> Value {
+        self.value
+    }
+
+    pub fn new<T: Into<Option<usize>>>(value: Value, tokens: T) -> Self {
+        IR {
+            value,
+            tokens: tokens.into().unwrap_or(0),
+        }
+    }
 
     /// Construct a new decimal result
     pub fn dec<T: Into<Option<usize>>>(v: i64, tokens: T) -> Self {
-        IR {value: Value::Dec(v), tokens: tokens.into().unwrap_or(0)}
+        IR {
+            value: Value::Dec(v),
+            tokens: tokens.into().unwrap_or(0),
+        }
     }
 
     /// Construct a new hexadecimal result
     pub fn hex<T: Into<Option<usize>>>(v: i64, tokens: T) -> Self {
-        IR {value: Value::Hex(v), tokens: tokens.into().unwrap_or(0)}
+        IR {
+            value: Value::Hex(v),
+            tokens: tokens.into().unwrap_or(0),
+        }
     }
 
     /// Construt a new floating point result
@@ -124,6 +144,16 @@ impl IR {
         }
     }
 
+    pub fn powu(self, i: u32) -> Self {
+        match self.value {
+            Value::Float(n) => {
+                IR::new(Value::Float(n.powi(i as i32)), self.tokens)
+            }
+            Value::Dec(n) => IR::new(Value::Dec(n.pow(i)), self.tokens),
+            Value::Hex(n) => IR::new(Value::Hex(n.pow(i)), self.tokens),
+        }
+    }
+
     pub fn pow(self, that: IR) -> Result<Self, CalcError> {
         let value = match (&self.value, &that.value) {
             (&Value::Float(n), &Value::Float(m)) => Value::Float(n.powf(m)),
@@ -131,12 +161,12 @@ impl IR {
             (&Value::Float(n), &Value::Dec(m)) => {
                 if m > i32::max_value() as i64 {
                     return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", self.value, that.value)
-                    ))
+                        PartialComp::binary("**", self.value, that.value),
+                    ));
                 } else if m < i32::min_value() as i64 {
                     return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", self.value, that.value)
-                    ))
+                        PartialComp::binary("**", self.value, that.value),
+                    ));
                 } else {
                     Value::Float(n.powi(m as i32))
                 }
@@ -150,12 +180,12 @@ impl IR {
             (&Value::Hex(n), &Value::Dec(m)) => {
                 if m > i32::max_value() as i64 {
                     return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", self.value, that.value)
-                    ))
+                        PartialComp::binary("**", self.value, that.value),
+                    ));
                 } else if m < i32::min_value() as i64 {
                     return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", self.value, that.value)
-                    ))
+                        PartialComp::binary("**", self.value, that.value),
+                    ));
                 } else if m < 0 {
                     Value::Float((n as f64).powi(m as i32))
                 } else {
@@ -165,12 +195,12 @@ impl IR {
             (&Value::Dec(n), &Value::Dec(m)) => {
                 if m > i32::max_value() as i64 {
                     return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", self.value, that.value)
-                    ))
+                        PartialComp::binary("**", self.value, that.value),
+                    ));
                 } else if m < i32::min_value() as i64 {
                     return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", self.value, that.value)
-                    ))
+                        PartialComp::binary("**", self.value, that.value),
+                    ));
                 } else if m < 0 {
                     Value::Float((n as f64).powi(m as i32))
                 } else {
@@ -178,39 +208,47 @@ impl IR {
                 }
             }
         };
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
-
 }
 
 impl Add for IR {
     type Output = Self;
 
     fn add(self, that: IR) -> Self::Output {
-        let value = self.value.castmap(that.value, "+", |x, y| x + y, |x, y| x + y);
-        IR { value, tokens: self.tokens + that.tokens }
+        let value = self.value.castmap(that.value, |x, y| x + y, |x, y| x + y);
+        IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        }
     }
-
 }
 
 impl Sub for IR {
     type Output = Self;
 
     fn sub(self, that: IR) -> Self::Output {
-        let value = self.value.castmap(that.value, "-", |x, y| x - y, |x, y| x - y);
-        IR { value, tokens: self.tokens + that.tokens }
+        let value = self.value.castmap(that.value, |x, y| x - y, |x, y| x - y);
+        IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        }
     }
-
 }
 
 impl Mul for IR {
     type Output = Self;
 
     fn mul(self, that: IR) -> Self::Output {
-        let value = self.value.castmap(that.value, "*", |x, y| x * y, |x, y| x * y);
-        IR { value, tokens: self.tokens + that.tokens }
+        let value = self.value.castmap(that.value, |x, y| x * y, |x, y| x * y);
+        IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        }
     }
-
 }
 
 impl Div for IR {
@@ -220,13 +258,12 @@ impl Div for IR {
         if that.value.is_zero() {
             return Err(CalcError::DivideByZero);
         }
-        let value = self.value.castmap(that.value, "/", 
-            |x, y| x / y, 
-            |x, y| x / y
-        );
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        let value = self.value.castmap(that.value, |x, y| x / y, |x, y| x / y);
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
-
 }
 
 impl BitAnd for IR {
@@ -234,7 +271,10 @@ impl BitAnd for IR {
 
     fn bitand(self, that: IR) -> Self::Output {
         let value = self.value.intmap(that.value, "&", |n, m| n & m)?;
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
 }
 
@@ -243,7 +283,10 @@ impl BitOr for IR {
 
     fn bitor(self, that: IR) -> Self::Output {
         let value = self.value.intmap(that.value, "|", |n, m| n | m)?;
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
 }
 
@@ -252,7 +295,10 @@ impl BitXor for IR {
 
     fn bitxor(self, that: IR) -> Self::Output {
         let value = self.value.intmap(that.value, "|", |n, m| n | m)?;
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
 }
 
@@ -265,7 +311,10 @@ impl Neg for IR {
             Value::Dec(n) => Value::Dec(-n),
             Value::Float(f) => Value::Float(-f),
         };
-        IR { value, tokens: self.tokens }
+        IR {
+            value,
+            tokens: self.tokens,
+        }
     }
 }
 
@@ -280,7 +329,10 @@ impl Not for IR {
                 return Err(CalcError::BadTypes(PartialComp::unary("~", f)))
             }
         };
-        Ok(IR { value, tokens: self.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens,
+        })
     }
 }
 
@@ -292,13 +344,12 @@ impl Rem for IR {
         if that.value.is_zero() {
             return Err(CalcError::DivideByZero);
         }
-        let value = self.value.castmap(that.value, "%", 
-            |x, y| x % y, 
-            |x, y| x % y
-        );
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        let value = self.value.castmap(that.value, |x, y| x % y, |x, y| x % y);
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
-
 }
 
 impl Shl<IR> for IR {
@@ -306,7 +357,10 @@ impl Shl<IR> for IR {
 
     fn shl(self, that: IR) -> Self::Output {
         let value = self.value.intmap(that.value, "<<", |n, m| n << m)?;
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
 }
 
@@ -316,6 +370,9 @@ impl Shr<IR> for IR {
 
     fn shr(self, that: IR) -> Self::Output {
         let value = self.value.intmap(that.value, ">>", |n, m| n >> m)?;
-        Ok(IR { value, tokens: self.tokens + that.tokens })
+        Ok(IR {
+            value,
+            tokens: self.tokens + that.tokens,
+        })
     }
 }
