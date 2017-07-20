@@ -67,7 +67,6 @@ pub enum CalcError {
     UnmatchedParenthesis,
     WouldOverflow(PartialComp),
     WouldTruncate(PartialComp),
-    NoFunctionArgument,
 }
 
 use CalcError::*;
@@ -100,7 +99,6 @@ impl fmt::Display for CalcError {
             }
             UnexpectedEndOfInput => write!(f, "unexpected end of input"),
             UnmatchedParenthesis => write!(f, "unmatched patenthesis"),
-            NoFunctionArgument => write!(f, "no bracketed function argument"),
         }
     }
 }

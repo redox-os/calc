@@ -80,7 +80,7 @@ fn e_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 t1 = t1 - t_expr(&token_list[index + 1..], env)?;
                 t1.tokens += 1;
             }
-            Token::Number(n) => {
+            Token::Number(ref n) => {
                 return Err(
                     CalcError::UnexpectedToken(n.to_string(), "operator"),
                 )
@@ -113,7 +113,7 @@ fn t_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 f1 = (f1 % f_expr(&token_list[index + 1..], env)?)?;
                 f1.tokens += 1;
             }
-            Token::Number(n) => {
+            Token::Number(ref n) => {
                 return Err(
                     CalcError::UnexpectedToken(n.to_string(), "operator"),
                 );
@@ -147,7 +147,7 @@ fn f_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 g1 = g1.powu(3);
                 g1.tokens += 1;
             }
-            Token::Number(n) => {
+            Token::Number(ref n) => {
                 return Err(
                     CalcError::UnexpectedToken(n.to_string(), "operator"),
                 );
@@ -165,7 +165,7 @@ fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
 {
     if !token_list.is_empty() {
         match token_list[0] {
-            Token::Number(n) => Ok(IR::floating(n, 1)),
+            Token::Number(ref n) => Ok(IR::new(n.clone(), 1)),
             Token::Atom(ref s) => {
                 if let Some(nargs) = env.arity(s) {
                     let mut args = Vec::new();
@@ -226,21 +226,20 @@ impl Environment for DefaultEnvironment {
     }
 
     fn resolve(&mut self, atom: &str, args: &[IR]) -> Result<Value, CalcError> {
-        unimplemented!()
-        // match atom {
-        //    "pi" => Ok(::std::f64::consts::PI),
-        //    "tau" => Ok(::std::f64::consts::PI * 2.0),
-        //    "log" => Ok(args[0].value.log(10.0)),
-        //    "sin" => Ok(args[0].value.sin()),
-        //    "cos" => Ok(args[0].value.cos()),
-        //    "tan" => Ok(args[0].value.tan()),
-        //    _ => Err(CalcError::UnknownAtom(atom.to_owned())),
-        // }
+        match atom {
+            "pi" => Ok(Value::Float(::std::f64::consts::PI)),
+            "tau" => Ok(Value::Float(::std::f64::consts::PI * 2.0)),
+            "log" => Ok(Value::Float(args[0].value().as_float().log(10.0))),
+            "sin" => Ok(Value::Float(args[0].value().as_float().sin())),
+            "cos" => Ok(Value::Float(args[0].value().as_float().cos())),
+            "tan" => Ok(Value::Float(args[0].value().as_float().tan())),
+            _ => Err(CalcError::UnknownAtom(atom.to_owned())),
+        }
     }
 }
 
 pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
     where E: Environment
 {
-    d_expr(tokens, env).map(|answer| answer.value())
+    d_expr(tokens, env).map(|answer| answer.value().clone())
 }

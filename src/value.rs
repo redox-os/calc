@@ -46,6 +46,13 @@ impl Value {
         }
     }
 
+    pub fn as_float(&self) -> f64 {
+        match *self {
+            Value::Dec(n) | Value::Hex(n) => n as f64,
+            Value::Float(n) => n,
+        }
+    }
+
     /// Represents a computation that can only operate on, and return,
     /// integer values
     pub fn intmap<F, T>(
@@ -109,8 +116,8 @@ pub struct IR {
 }
 
 impl IR {
-    pub fn value(self) -> Value {
-        self.value
+    pub fn value(&self) -> &Value {
+        &self.value
     }
 
     pub fn new<T: Into<Option<usize>>>(value: Value, tokens: T) -> Self {
@@ -258,7 +265,29 @@ impl Div for IR {
         if that.value.is_zero() {
             return Err(CalcError::DivideByZero);
         }
-        let value = self.value.castmap(that.value, |x, y| x / y, |x, y| x / y);
+        let value = match (self.value, that.value) {
+            (Value::Float(n), Value::Float(m)) => Value::Float(n / m),
+            (Value::Float(n), Value::Hex(m)) |
+            (Value::Float(n), Value::Dec(m)) => Value::Float(n / m as f64),
+            (Value::Hex(n), Value::Float(m)) |
+            (Value::Dec(n), Value::Float(m)) => Value::Float(n as f64 / m),
+            (Value::Hex(n), Value::Hex(m)) |
+            (Value::Dec(n), Value::Hex(m)) |
+            (Value::Hex(n), Value::Dec(m)) => {
+                if n % m == 0 {
+                    Value::Hex(n / m)
+                } else {
+                    Value::Float(n as f64 / m as f64)
+                }
+            }
+            (Value::Dec(n), Value::Dec(m)) => {
+                if n % m == 0 {
+                    Value::Dec(n / m)
+                } else {
+                    Value::Float(n as f64 / m as f64)
+                }
+            }
+        };
         Ok(IR {
             value,
             tokens: self.tokens + that.tokens,
@@ -294,7 +323,7 @@ impl BitXor for IR {
     type Output = Result<Self, CalcError>;
 
     fn bitxor(self, that: IR) -> Self::Output {
-        let value = self.value.intmap(that.value, "|", |n, m| n | m)?;
+        let value = self.value.intmap(that.value, "^", |n, m| n ^ m)?;
         Ok(IR {
             value,
             tokens: self.tokens + that.tokens,

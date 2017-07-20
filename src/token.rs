@@ -2,8 +2,9 @@ use std::i64;
 use std::fmt;
 use std::iter::Peekable;
 
-use super::error::CalcError;
-use super::error::CalcError::*;
+use error::CalcError;
+use error::CalcError::*;
+use value::Value;
 
 /// Tokens used for parsing an arithmetic expression
 #[derive(Debug, Clone, PartialEq)]
@@ -24,7 +25,7 @@ pub enum Token {
     Modulo,
     OpenParen,
     CloseParen,
-    Number(f64),
+    Number(Value),
     Atom(String),
 }
 
@@ -47,7 +48,7 @@ impl fmt::Display for Token {
             Token::Modulo => write!(f, "Modulo"),
             Token::OpenParen => write!(f, "OpenParen"),
             Token::CloseParen => write!(f, "CloseParen"),
-            Token::Number(n) => write!(f, "'{}'", n),
+            Token::Number(ref n) => write!(f, "'{}'", n),
             Token::Atom(ref s) => write!(f, "'{}'", s),
         }
     }
@@ -204,10 +205,10 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
                     input.next();
                     let digits = digits(input, 16);
                     let num = i64::from_str_radix(&digits, 16)?;
-                    return Ok(Token::Number(num as f64));
+                    return Ok(Token::Number(Value::Hex(num)));
                 }
                 Some(&_) => (),
-                None => return Ok(Token::Number(0.0)),
+                None => return Ok(Token::Number(Value::Dec(0))),
             }
         }
         Some(_) => (),
@@ -217,9 +218,10 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
     if let Some(&'.') = input.peek() {
         input.next();
         let frac = digits(input, 10);
-        Ok(Token::Number([whole, ".".into(), frac].concat().parse()?))
+        let num: f64 = [whole, ".".into(), frac].concat().parse()?;
+        Ok(Token::Number(Value::Float(num)))
     } else {
-        Ok(Token::Number(whole.parse()?))
+        Ok(Token::Number(Value::Dec(whole.parse()?)))
     }
 }
 
@@ -257,17 +259,17 @@ mod tests {
         let line = "(3 + 7) >> 10 * (7 % 2)";
         let expected = vec![
             Token::OpenParen,
-            Token::Number(3.0),
+            Token::Number(Value::Dec(3)),
             Token::Plus,
-            Token::Number(7.0),
+            Token::Number(Value::Dec(7)),
             Token::CloseParen,
             Token::BitWiseRShift,
-            Token::Number(10.0),
+            Token::Number(Value::Dec(10)),
             Token::Multiply,
             Token::OpenParen,
-            Token::Number(7.0),
+            Token::Number(Value::Dec(7)),
             Token::Modulo,
-            Token::Number(2.0),
+            Token::Number(Value::Dec(2)),
             Token::CloseParen,
         ];
         assert_eq!(tokenize(line), Ok(expected));
@@ -278,10 +280,10 @@ mod tests {
         let line = "log 4 / log 2";
         let expected = vec![
             Token::Atom("log".into()),
-            Token::Number(4.0),
+            Token::Number(Value::Dec(4)),
             Token::Divide,
             Token::Atom("log".into()),
-            Token::Number(2.0),
+            Token::Number(Value::Dec(2)),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
@@ -290,9 +292,9 @@ mod tests {
     fn hexadecimals() {
         let line = "0xDEADBEEF | 0xC0FFEE";
         let expected = vec![
-            Token::Number(3735928559.0),
+            Token::Number(Value::Hex(0xDEADBEEF)),
             Token::BitWiseOr,
-            Token::Number(12648430.0),
+            Token::Number(Value::Hex(0xC0FFEE)),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }

@@ -32,14 +32,14 @@ mod tests {
     #[test]
     fn basics() {
         let cases = vec![
-            ("  1 +   1", Value::Float(2.0)),
-            (" 4 * 7 - 14", Value::Float(14.0)),
-            (" 2 << 16 ", Value::Float(131072.0)),
+            ("  1 +   1", Value::Dec(2)),
+            (" 4 * 7 - 14", Value::Dec(14)),
+            (" 2 << 16 ", Value::Dec(131072)),
             (" ((4 * 18) % 17) / 3", Value::Float(4.0 / 3.0)),
-            ("2²³²", Value::Float(4096.0)),
-            ("4 ^ 3 ^ 2 ^ 3 ^ 4 ^ 2", Value::Float(0.0)),
-            ("3 << (4 >> 2)", Value::Float(6.0)),
-            ("~0", Value::Float(-1.0)),
+            ("2²³²", Value::Dec(4096)),
+            ("4 ^ 3 ^ 2 ^ 3 ^ 4 ^ 2", Value::Dec(0)),
+            ("3 << (4 >> 2)", Value::Dec(6)),
+            ("~0", Value::Dec(-1)),
             ("cos pi + sin (tau * (3 / 4))", Value::Float(-2.0)),
         ];
         for (input, expected) in cases {
