@@ -192,7 +192,7 @@ fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 if close_paren < token_list.len() {
                     match token_list[close_paren] {
                         Token::CloseParen => {
-                            ir.tokens += 1;
+                            ir.tokens = close_paren + 1;
                             Ok(ir)
                         }
                         _ => Err(CalcError::UnexpectedToken(
