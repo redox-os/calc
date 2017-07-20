@@ -1,6 +1,6 @@
 use token::*;
 use error::CalcError;
-use value::{Value, IR, IntermediateResult};
+use value::{Value, IR};
 
 /// Represents an environment for evaluating a mathematical expression
 pub trait Environment {

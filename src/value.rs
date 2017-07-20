@@ -2,26 +2,6 @@ use std::fmt;
 use std::ops::*;
 use error::{CalcError, PartialComp};
 
-#[derive(Clone, Debug)]
-pub struct IntermediateResult {
-    pub value: f64,
-    pub tokens_read: usize,
-}
-
-impl IntermediateResult {
-    pub fn new(value: f64, tokens_read: usize) -> Self {
-        IntermediateResult { value, tokens_read }
-    }
-
-    /// Determines if the underlying value can be represented as an integer.
-    /// This is used for typechecking of sorts: we can only do bitwise
-    /// operations on integers.
-    pub fn is_whole(&self) -> bool {
-        self.value == self.value.floor()
-    }
-}
-
-
 /// Represents a canonical value that can be calculated by this library
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -404,4 +384,25 @@ impl Shr<IR> for IR {
             tokens: self.tokens + that.tokens,
         })
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn float_override() {
+        let cases = vec![
+            (IR::floating(3.0, 0) + IR::dec(1, 0),
+             IR::floating(4.0, 0)),
+            (IR::hex(5, 0) - IR::floating(4.5, 0),
+             IR::floating(0.5, 0))
+        ];
+
+        for (output, expected) in cases {
+            assert_eq!(output, expected);
+        }
+    }
+
 }
