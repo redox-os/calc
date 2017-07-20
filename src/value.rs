@@ -397,7 +397,9 @@ mod tests {
             (IR::floating(3.0, 0) + IR::dec(1, 0),
              IR::floating(4.0, 0)),
             (IR::hex(5, 0) - IR::floating(4.5, 0),
-             IR::floating(0.5, 0))
+             IR::floating(0.5, 0)),
+            (IR::hex(24, 0) * IR::dec(4, 0) * IR::floating(1.0 / 48.0, 0),
+             IR::floating(2.0, 0))
         ];
 
         for (output, expected) in cases {
