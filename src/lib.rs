@@ -9,6 +9,7 @@ mod bench;
 mod error;
 mod token;
 mod parse;
+mod value;
 
 pub use error::CalcError;
 
