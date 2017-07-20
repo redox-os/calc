@@ -100,7 +100,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Value::Dec(n) => write!(f, "{}", n),
-            Value::Hex(n) => write!(f, "{:X}", n),
+            Value::Hex(n) => write!(f, "0x{:X}", n),
             Value::Float(n) => write!(f, "{}", n),
         }
     }
