@@ -13,29 +13,33 @@ pub enum PartialComp {
 
 impl PartialComp {
 
-    pub fn unary<T>(op: T, arg: T) -> Self 
-        where T: Into<String>
+    pub fn unary<T, U>(op: T, arg: U) -> Self 
+        where T: ToString, U: ToString
     {
-        PartialComp::Unary {op: op.into(), arg: arg.into()}
+        PartialComp::Unary {op: op.to_string(), arg: arg.to_string()}
     }
 
-    pub fn binary<T>(op: T, lhs: T, rhs: T) -> Self 
-        where T: Into String
+    pub fn binary<T, U, V>(op: T, lhs: U, rhs: V) -> Self 
+        where T: ToString, U: ToString, V: ToString
     {
-        PartialComp::Binary { op: op.into(), lhs: lhs.into(), rhs: rhs.into() }
+        PartialComp::Binary { 
+            op: op.to_string(), 
+            lhs: lhs.to_string(), 
+            rhs: rhs.to_string() 
+        }
     }
 
 }
 
-impl fmt::Display {
+impl fmt::Display for PartialComp {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Unary { op, arg } => {
-                write!(f, "{} {}", op, arg),
+            PartialComp::Unary { ref op, ref arg } => {
+                write!(f, "{} {}", op, arg)
             }
-            Binary { op, lhs, rhs } => {
-                write!(f, "{} {} {}", lhs, arg, rhs)
+            PartialComp::Binary { ref op, ref lhs, ref rhs } => {
+                write!(f, "{} {} {}", lhs, op, rhs)
             }
         }
     }

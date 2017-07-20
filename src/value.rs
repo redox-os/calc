@@ -35,6 +35,55 @@ pub enum Value {
     Float(f64),
 }
 
+impl Value {
+
+    pub fn is_zero(&self) -> bool {
+        match *self {
+            Value::Dec(n) | Value::Hex(n) => n == 0,
+            Value::Float(f) => f == 0.0,
+        }
+    }
+
+    /// Represents a computation that can only operate on, and return,
+    /// integer values
+    pub fn intmap<F, T>(self, that: Value, op: T, f: F) 
+        -> Result<Value, CalcError>
+        where F: Fn(i64, i64) -> i64, T: ToString
+    {
+        match (self, that) {
+            (Value::Hex(n), Value::Hex(m)) |
+            (Value::Hex(n), Value::Dec(m)) |
+            (Value::Dec(n), Value::Hex(m)) => Ok(Value::Hex(f(n, m))),
+            (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m))),
+            (v1 @ Value::Float(_), v2 @ _) |
+            (v1 @ _, v2 @ Value::Float(_)) => {
+                Err(CalcError::BadTypes(
+                    PartialComp::binary(op, v1, v2)
+                ))
+            }
+        }
+    }
+
+    /// Represents a computation that will cast integer types to floating point
+    pub fn castmap<F, G, T>(self, that: Value, op: T, f: F, g: G) -> Value
+        where F: Fn(i64, i64) -> i64, G: Fn(f64, f64) -> f64,
+              T: ToString
+    {
+        match (self, that) {
+            (Value::Float(n), Value::Float(m)) => Value::Float(g(n, m)),
+            (Value::Float(n), Value::Hex(m)) |
+            (Value::Float(n), Value::Dec(m)) => Value::Float(g(n, m as f64)),
+            (Value::Hex(n), Value::Float(m)) |
+            (Value::Dec(n), Value::Float(m)) => Value::Float(g(n as f64, m)),
+            (Value::Hex(n), Value::Hex(m)) |
+            (Value::Dec(n), Value::Hex(m)) |
+            (Value::Hex(n), Value::Dec(m)) => Value::Hex(f(n, m)),
+            (Value::Dec(n), Value::Dec(m)) => Value::Dec(f(n, m)),
+        }
+    }
+
+}
+
 impl fmt::Display for Value {
 
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -75,44 +124,61 @@ impl IR {
         }
     }
 
-    pub fn pow(self, that: IR) -> Self {
-        let value = match (self.value, that.value) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(n.powf(m)),
-            (a @ Value::Float(n), b @ Value::Hex(m)) |
-            (a @ Value::Float(n), b @ Value::Dec(m)) => {
-                if m > std::i32::MAX {
+    pub fn pow(self, that: IR) -> Result<Self, CalcError> {
+        let value = match (&self.value, &that.value) {
+            (&Value::Float(n), &Value::Float(m)) => Value::Float(n.powf(m)),
+            (&Value::Float(n), &Value::Hex(m)) |
+            (&Value::Float(n), &Value::Dec(m)) => {
+                if m > i32::max_value() as i64 {
                     return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", a, b)
+                        PartialComp::binary("**", self.value, that.value)
                     ))
-                } else if m < std::i32::MIN {
+                } else if m < i32::min_value() as i64 {
                     return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", a, b)
-                    })
+                        PartialComp::binary("**", self.value, that.value)
+                    ))
                 } else {
                     Value::Float(n.powi(m as i32))
                 }
             }
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => {
+            (&Value::Hex(n), &Value::Float(m)) |
+            (&Value::Dec(n), &Value::Float(m)) => {
                 Value::Float((n as f64).powf(m))
             }
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => {
-                if m > std::i32::MAX {
+            (&Value::Hex(n), &Value::Hex(m)) |
+            (&Value::Dec(n), &Value::Hex(m)) |
+            (&Value::Hex(n), &Value::Dec(m)) => {
+                if m > i32::max_value() as i64 {
                     return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", a, b)
+                        PartialComp::binary("**", self.value, that.value)
                     ))
-                } else if m < std::i32::MIN {
+                } else if m < i32::min_value() as i64 {
                     return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", a, b)
-                    })
+                        PartialComp::binary("**", self.value, that.value)
+                    ))
+                } else if m < 0 {
+                    Value::Float((n as f64).powi(m as i32))
                 } else {
-                    Value::Hex(n.pow(m))
+                    Value::Hex(n.pow(m as u32))
                 }
             }
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n + m),
+            (&Value::Dec(n), &Value::Dec(m)) => {
+                if m > i32::max_value() as i64 {
+                    return Err(CalcError::WouldOverflow(
+                        PartialComp::binary("**", self.value, that.value)
+                    ))
+                } else if m < i32::min_value() as i64 {
+                    return Err(CalcError::WouldTruncate(
+                        PartialComp::binary("**", self.value, that.value)
+                    ))
+                } else if m < 0 {
+                    Value::Float((n as f64).powi(m as i32))
+                } else {
+                    Value::Dec(n.pow(m as u32))
+                }
+            }
         };
+        Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 
 }
@@ -121,17 +187,7 @@ impl Add for IR {
     type Output = Self;
 
     fn add(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(n + m),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(n + (m as f64)),
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float((n as f64) + m),
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => Value::Hex(n + m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n + m),
-        };
+        let value = self.value.castmap(that.value, "+", |x, y| x + y, |x, y| x + y);
         IR { value, tokens: self.tokens + that.tokens }
     }
 
@@ -141,17 +197,7 @@ impl Sub for IR {
     type Output = Self;
 
     fn sub(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(n - m),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(n - (m as f64)),
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float((n as f64) - m),
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => Value::Hex(n - m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n - m),
-        };
+        let value = self.value.castmap(that.value, "-", |x, y| x - y, |x, y| x - y);
         IR { value, tokens: self.tokens + that.tokens }
     }
 
@@ -161,17 +207,7 @@ impl Mul for IR {
     type Output = Self;
 
     fn mul(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(n * m),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(n * (m as f64)),
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float((n as f64) * m),
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => Value::Hex(n * m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n * m),
-        };
+        let value = self.value.castmap(that.value, "*", |x, y| x * y, |x, y| x * y);
         IR { value, tokens: self.tokens + that.tokens }
     }
 
@@ -181,30 +217,13 @@ impl Div for IR {
     type Output = Result<Self, CalcError>;
 
     fn div(self, that: IR) -> Self::Output {
-
-        // XXX: This whole construct can be replaced with `std::num::Zero` once
-        // it is stable.
-        macro_rules! safe {
-            ($lhs:expr, $rhs:expr, $zero:expr) => {{
-                if $rhs == $zero {
-                    Err(CalcError::DivideByZero)
-                } else {
-                    Ok($lhs / $rhs)
-                }
-            }}
+        if that.value.is_zero() {
+            return Err(CalcError::DivideByZero);
         }
-
-        let value = match (self.value, that.value) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(safe!(n, m, 0.0)?),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(safe!(n, m as f64, 0.0)?),
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float(safe!(n as f64, m, 0.0)?),
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => Value::Hex(safe!(n, m, 0)?),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(safe!(n, m, 0)?),
-        };
+        let value = self.value.castmap(that.value, "/", 
+            |x, y| x / y, 
+            |x, y| x / y
+        );
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 
@@ -214,18 +233,7 @@ impl BitAnd for IR {
     type Output = Result<Self, CalcError>;
 
     fn bitand(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) |
-            (Value::Dec(n), Value::Hex(m)) => Value::Hex(n & m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n & m),
-            (v1 @ Value::Float(_), v2 @ _) |
-            (v1 @ _, v2 @ Value::Float(_)) => {
-                return Err(CalcError::BadTypes(
-                    PartialComp::binary("&", v1, v2)
-                ))
-            }
-        };
+        let value = self.value.intmap(that.value, "&", |n, m| n & m)?;
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 }
@@ -234,18 +242,7 @@ impl BitOr for IR {
     type Output = Result<Self, CalcError>;
 
     fn bitor(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) |
-            (Value::Dec(n), Value::Hex(m)) => Value::Hex(n | m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n | m),
-            (v1 @ Value::Float(_), v2 @ _) |
-            (v1 @ _, v2 @ Value::Float(_)) => {
-                return Err(CalcError::BadTypes(
-                    PartialComp::binary("|", v1, v2)
-                ))
-            }
-        };
+        let value = self.value.intmap(that.value, "|", |n, m| n | m)?;
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 }
@@ -254,18 +251,7 @@ impl BitXor for IR {
     type Output = Result<Self, CalcError>;
 
     fn bitxor(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) |
-            (Value::Dec(n), Value::Hex(m)) => Value::Hex(n ^ m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n ^ m),
-            (v1 @ Value::Float(_), v2 @ _) |
-            (v1 @ _, v2 @ Value::Float(_)) => {
-                return Err(CalcError::BadTypes(
-                    PartialComp::binary("^", v1, v2)
-                ))
-            }
-        };
+        let value = self.value.intmap(that.value, "|", |n, m| n | m)?;
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 }
@@ -303,30 +289,13 @@ impl Rem for IR {
     type Output = Result<Self, CalcError>;
 
     fn rem(self, that: IR) -> Self::Output {
-
-        // XXX: This whole construct can be replaced with `std::num::Zero` once
-        // it is stable.
-        macro_rules! safe {
-            ($lhs:expr, $rhs:expr, $zero:expr) => {{
-                if $rhs == $zero {
-                    Err(CalcError::DivideByZero)
-                } else {
-                    Ok($lhs % $rhs)
-                }
-            }}
+        if that.value.is_zero() {
+            return Err(CalcError::DivideByZero);
         }
-
-        let value = match (self.value, that.value) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(safe!(n, m, 0.0)?),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(safe!(n, m as f64, 0.0)?),
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float(safe!(n as f64, m, 0.0)?),
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => Value::Hex(safe!(n, m, 0)?),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(safe!(n, m, 0)?),
-        };
+        let value = self.value.castmap(that.value, "%", 
+            |x, y| x % y, 
+            |x, y| x % y
+        );
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 
@@ -336,18 +305,7 @@ impl Shl<IR> for IR {
     type Output = Result<Self, CalcError>;
 
     fn shl(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) |
-            (Value::Dec(n), Value::Hex(m)) => Value::Hex(n << m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n << m),
-            (v1 @ Value::Float(_), v2 @ _) |
-            (v1 @ _, v2 @ Value::Float(_)) => {
-                return Err(CalcError::BadTypes(
-                    PartialComp::binary("<<", v1, v2)
-                ))
-            }
-        };
+        let value = self.value.intmap(that.value, "<<", |n, m| n << m)?;
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 }
@@ -357,18 +315,7 @@ impl Shr<IR> for IR {
     type Output = Result<Self, CalcError>;
 
     fn shr(self, that: IR) -> Self::Output {
-        let value = match (self.value, that.value) {
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) |
-            (Value::Dec(n), Value::Hex(m)) => Value::Hex(n >> m),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(n >> m),
-            (v1 @ Value::Float(_), v2 @ _) |
-            (v1 @ _, v2 @ Value::Float(_)) => {
-                return Err(CalcError::BadTypes(
-                    PartialComp::binary(">>", v1, v2)
-                ))
-            }
-        };
+        let value = self.value.intmap(that.value, ">>", |n, m| n >> m)?;
         Ok(IR { value, tokens: self.tokens + that.tokens })
     }
 }
