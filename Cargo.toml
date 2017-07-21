@@ -1,6 +1,6 @@
 [package]
 name = "calculate"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Hunter Goldstein <hunter.d.goldstein@gmail.com>"]
 description = "Rust library for parsing and processing arithmetic expressions"
 license-file = "LICENSE"
