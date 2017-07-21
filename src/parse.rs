@@ -1,25 +1,6 @@
 use token::*;
 use error::CalcError;
-
-
-#[derive(Clone, Debug)]
-pub struct IntermediateResult {
-    value: f64,
-    tokens_read: usize,
-}
-
-impl IntermediateResult {
-    pub fn new(value: f64, tokens_read: usize) -> Self {
-        IntermediateResult { value, tokens_read }
-    }
-
-    /// Determines if the underlying value can be represented as an integer.
-    /// This is used for typechecking of sorts: we can only do bitwise
-    /// operations on integers.
-    pub fn is_whole(&self) -> bool {
-        self.value == self.value.floor()
-    }
-}
+use value::{Value, IR};
 
 /// Represents an environment for evaluating a mathematical expression
 pub trait Environment {
@@ -35,118 +16,51 @@ pub trait Environment {
     fn resolve(
         &mut self,
         atom: &str,
-        args: &[IntermediateResult],
-    ) -> Result<f64, CalcError>;
+        args: &[Value],
+    ) -> Result<Value, CalcError>;
 }
 
 
-fn d_expr<E>(
-    token_list: &[Token],
-    env: &mut E,
-) -> Result<IntermediateResult, CalcError>
+fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     where E: Environment
 {
 
     if !token_list.is_empty() && token_list[0] == Token::BitWiseNot {
-        let mut e = e_expr(&token_list[1..], env)?;
-        if e.is_whole() {
-            let mut int_f = e.value.floor() as i64;
-            int_f = !(int_f);
-            e.value = int_f as f64;
-            e.tokens_read += 1;
-            return Ok(e);
-        } else {
-            return Err(CalcError::UnexpectedToken(
-                e.value.to_string(),
-                "Not an integer number!",
-            ));
-        }
+        let mut e = d_expr(&token_list[1..], env)?;
+        e.value = (!e.value)?;
+        e.tokens += 1;
+        return Ok(e);
     }
 
     let mut e1 = e_expr(token_list, env)?;
-    let mut index = e1.tokens_read;
+    let mut index = e1.tokens;
 
     while index < token_list.len() {
         match token_list[index] {
             Token::BitWiseAnd => {
                 let e2 = e_expr(&token_list[index + 1..], env)?;
-                if e1.is_whole() && e2.is_whole() {
-                    let mut int_f = e1.value.floor() as i64;
-                    let int_s = e2.value.floor() as i64;
-                    int_f &= int_s;
-                    e1.value = int_f as f64;
-                    e1.tokens_read += e2.tokens_read + 1;
-                } else {
-                    return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value })
-                            .to_string(),
-                        "Not an integer number!",
-                    ));
-                }
+                e1.value = (e1.value & e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseOr => {
                 let e2 = e_expr(&token_list[index + 1..], env)?;
-                if e1.is_whole() && e2.is_whole() {
-                    let mut int_f = e1.value.floor() as i64;
-                    let int_s = e2.value.floor() as i64;
-                    int_f |= int_s;
-                    e1.value = int_f as f64;
-                    e1.tokens_read += e2.tokens_read + 1;
-                } else {
-                    return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value })
-                            .to_string(),
-                        "Not an integer number!",
-                    ));
-                }
+                e1.value = (e1.value | e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseXor => {
                 let e2 = e_expr(&token_list[index + 1..], env)?;
-                if e1.is_whole() && e2.is_whole() {
-                    let mut int_f = e1.value.floor() as i64;
-                    let int_s = e2.value.floor() as i64;
-                    int_f ^= int_s;
-                    e1.value = int_f as f64;
-                    e1.tokens_read += e2.tokens_read + 1;
-                } else {
-                    return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value })
-                            .to_string(),
-                        "Not an integer number!",
-                    ));
-                }
+                e1.value = (e1.value ^ e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseLShift => {
                 let e2 = e_expr(&token_list[index + 1..], env)?;
-                if e1.is_whole() && e2.is_whole() {
-                    let mut int_f = e1.value.floor() as i64;
-                    let int_s = e2.value.floor() as i64;
-                    int_f <<= int_s;
-                    e1.value = int_f as f64;
-                    e1.tokens_read += e2.tokens_read + 1;
-                } else {
-                    return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value })
-                            .to_string(),
-                        "Not an integer number!",
-                    ));
-                }
+                e1.value = (e1.value << e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseRShift => {
                 let e2 = e_expr(&token_list[index + 1..], env)?;
-                if e1.is_whole() && e2.is_whole() {
-                    let mut int_f = e1.value.floor() as i64;
-                    let int_s = e2.value.floor() as i64;
-                    int_f >>= int_s;
-                    e1.value = int_f as f64;
-                    e1.tokens_read += e2.tokens_read + 1;
-                } else {
-                    return Err(CalcError::UnexpectedToken(
-                        (if e1.is_whole() { e2.value } else { e1.value })
-                            .to_string(),
-                        "Not an integer number!",
-                    ));
-                }
+                e1.value = (e1.value >> e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::Number(ref n) => {
                 return Err(
@@ -155,149 +69,129 @@ fn d_expr<E>(
             }
             _ => break,
         };
-        index = e1.tokens_read;
+        index = e1.tokens;
     }
     Ok(e1)
 }
 // Addition and subtraction
-fn e_expr<E>(
-    token_list: &[Token],
-    env: &mut E,
-) -> Result<IntermediateResult, CalcError>
+fn e_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     where E: Environment
 {
     let mut t1 = t_expr(token_list, env)?;
-    let mut index = t1.tokens_read;
+    let mut index = t1.tokens;
 
     while index < token_list.len() {
         match token_list[index] {
             Token::Plus => {
                 let t2 = t_expr(&token_list[index + 1..], env)?;
-                t1.value += t2.value;
-                t1.tokens_read += t2.tokens_read + 1;
+                t1.value = t1.value + t2.value;
+                t1.tokens += t2.tokens + 1;
             }
             Token::Minus => {
                 let t2 = t_expr(&token_list[index + 1..], env)?;
-                t1.value -= t2.value;
-                t1.tokens_read += t2.tokens_read + 1;
+                t1.value = t1.value - t2.value;
+                t1.tokens += t2.tokens + 1;
             }
-            Token::Number(n) => {
+            Token::Number(ref n) => {
                 return Err(
                     CalcError::UnexpectedToken(n.to_string(), "operator"),
                 )
             }
             _ => break,
         };
-        index = t1.tokens_read;
+        index = t1.tokens;
     }
     Ok(t1)
 }
 
 // Multiplication and division
-fn t_expr<E>(
-    token_list: &[Token],
-    env: &mut E,
-) -> Result<IntermediateResult, CalcError>
+fn t_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     where E: Environment
 {
     let mut f1 = f_expr(token_list, env)?;
-    let mut index = f1.tokens_read;
+    let mut index = f1.tokens;
 
     while index < token_list.len() {
         match token_list[index] {
             Token::Multiply => {
                 let f2 = f_expr(&token_list[index + 1..], env)?;
-                f1.value *= f2.value;
-                f1.tokens_read += f2.tokens_read + 1;
+                f1.value = f1.value * f2.value;
+                f1.tokens += f2.tokens + 1;
             }
             Token::Divide => {
                 let f2 = f_expr(&token_list[index + 1..], env)?;
-                if f2.value == 0.0 {
-                    return Err(CalcError::DivideByZero);
-                } else {
-                    f1.value /= f2.value;
-                    f1.tokens_read += f2.tokens_read + 1;
-                }
+                f1.value = (f1.value / f2.value)?;
+                f1.tokens += f2.tokens + 1;
             }
             Token::Modulo => {
                 let f2 = f_expr(&token_list[index + 1..], env)?;
-                if f2.value == 0.0 {
-                    return Err(CalcError::DivideByZero);
-                } else {
-                    f1.value %= f2.value;
-                    f1.tokens_read += f2.tokens_read + 1;
-                }
+                f1.value = (f1.value % f2.value)?;
+                f1.tokens += f2.tokens + 1;
             }
-            Token::Number(n) => {
+            Token::Number(ref n) => {
                 return Err(
                     CalcError::UnexpectedToken(n.to_string(), "operator"),
                 );
             }
             _ => break,
         }
-        index = f1.tokens_read;
+        index = f1.tokens;
     }
     Ok(f1)
 }
 
 // Exponentiation
-fn f_expr<E>(
-    token_list: &[Token],
-    env: &mut E,
-) -> Result<IntermediateResult, CalcError>
+fn f_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     where E: Environment
 {
     let mut g1 = g_expr(token_list, env)?; // was g1
-    let mut index = g1.tokens_read;
+    let mut index = g1.tokens;
     let token_len = token_list.len();
     while index < token_len {
         match token_list[index] {
             Token::Exponent => {
                 let f = f_expr(&token_list[index + 1..], env)?;
-                g1.value = g1.value.powf(f.value);
-                g1.tokens_read += f.tokens_read + 1;
+                g1.value = g1.value.pow(f.value)?;
+                g1.tokens += f.tokens + 1;
             }
             Token::Square => {
-                g1.value = g1.value * g1.value;
-                g1.tokens_read += 1;
+                g1.value = g1.value.powu(2);
+                g1.tokens += 1;
             }
             Token::Cube => {
-                g1.value = g1.value * g1.value * g1.value;
-                g1.tokens_read += 1;
+                g1.value = g1.value.powu(3);
+                g1.tokens += 1;
             }
-            Token::Number(n) => {
+            Token::Number(ref n) => {
                 return Err(
                     CalcError::UnexpectedToken(n.to_string(), "operator"),
                 );
             }
             _ => break,
         }
-        index = g1.tokens_read;
+        index = g1.tokens;
     }
     Ok(g1)
 }
 
 // Numbers, parenthesized expressions, and atoms
-fn g_expr<E>(
-    token_list: &[Token],
-    env: &mut E,
-) -> Result<IntermediateResult, CalcError>
+fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     where E: Environment
 {
     if !token_list.is_empty() {
         match token_list[0] {
-            Token::Number(n) => Ok(IntermediateResult::new(n, 1)),
+            Token::Number(ref n) => Ok(IR::new(n.clone(), 1)),
             Token::Atom(ref s) => {
                 if let Some(nargs) = env.arity(s) {
-                    let mut args = Vec::new();
+                    let mut args: Vec<Value> = Vec::new();
                     let mut start = 1;
                     for _ in 0..nargs {
                         let ir = g_expr(&token_list[start..], env)?;
-                        start += ir.tokens_read;
-                        args.push(ir);
+                        start += ir.tokens;
+                        args.push(ir.value);
                     }
                     let res = env.resolve(s, &args);
-                    Ok(IntermediateResult::new(res?, start))
+                    Ok(IR::new(res?, start))
                 } else {
                     Err(CalcError::UnknownAtom(s.clone()))
                 }
@@ -305,18 +199,18 @@ fn g_expr<E>(
             Token::Minus => {
                 let mut ir = d_expr(&token_list[1..], env)?;
                 ir.value = -ir.value;
-                ir.tokens_read += 1;
+                ir.tokens += 1;
                 Ok(ir)
             }
             Token::OpenParen => {
-                let ir = d_expr(&token_list[1..], env)?;
-                let close_paren = ir.tokens_read + 1;
+                let mut ir = d_expr(&token_list[1..], env)?;
+                let close_paren = ir.tokens + 1;
                 if close_paren < token_list.len() {
                     match token_list[close_paren] {
-                        Token::CloseParen => Ok(IntermediateResult::new(
-                            ir.value,
-                            close_paren + 1,
-                        )),
+                        Token::CloseParen => {
+                            ir.tokens = close_paren + 1;
+                            Ok(ir)
+                        }
                         _ => Err(CalcError::UnexpectedToken(
                             token_list[close_paren].to_string(),
                             ")",
@@ -350,21 +244,21 @@ impl Environment for DefaultEnvironment {
     fn resolve(
         &mut self,
         atom: &str,
-        args: &[IntermediateResult],
-    ) -> Result<f64, CalcError> {
+        args: &[Value],
+    ) -> Result<Value, CalcError> {
         match atom {
-            "pi" => Ok(::std::f64::consts::PI),
-            "tau" => Ok(::std::f64::consts::PI * 2.0),
-            "log" => Ok(args[0].value.log(10.0)),
-            "sin" => Ok(args[0].value.sin()),
-            "cos" => Ok(args[0].value.cos()),
-            "tan" => Ok(args[0].value.tan()),
+            "pi" => Ok(Value::Float(::std::f64::consts::PI)),
+            "tau" => Ok(Value::Float(::std::f64::consts::PI * 2.0)),
+            "log" => Ok(Value::Float(args[0].as_float().log(10.0))),
+            "sin" => Ok(Value::Float(args[0].as_float().sin())),
+            "cos" => Ok(Value::Float(args[0].as_float().cos())),
+            "tan" => Ok(Value::Float(args[0].as_float().tan())),
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
     }
 }
 
-pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<f64, CalcError>
+pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
     where E: Environment
 {
     d_expr(tokens, env).map(|answer| answer.value)
