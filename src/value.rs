@@ -139,7 +139,6 @@ impl Value {
             Value::Hex(n) => Value::Hex(n.pow(i)),
         }
     }
-
 }
 
 impl fmt::Display for Value {
@@ -162,14 +161,12 @@ pub struct IR {
 }
 
 impl IR {
-
     pub fn new<T: Into<Option<usize>>>(value: Value, tokens: T) -> Self {
         IR {
             value,
             tokens: tokens.into().unwrap_or(0),
         }
     }
-
 }
 
 impl Add for Value {
@@ -316,15 +313,15 @@ mod tests {
 
     #[test]
     fn float_override() {
-        let cases =
-            vec![
-                (Value::Float(3.0) + Value::Dec(1), Value::Float(4.0)),
-                (Value::Hex(5) - Value::Float(4.5), Value::Float(0.5)),
-                (
-                    Value::Hex(24) * Value::Dec(4) * Value::Float(1.0 / 48.0),
-                    Value::Float(2.0)
-                ),
-            ];
+        let cases = vec![
+            (Value::Float(3.0) + Value::Dec(1), Value::Float(4.0)),
+            (Value::Hex(5) - Value::Float(4.5), Value::Float(0.5)),
+            (
+                Value::Hex(24) * Value::Dec(4) *
+                    Value::Float(1.0 / 48.0),
+                Value::Float(2.0)
+            ),
+        ];
 
         for (output, expected) in cases {
             assert_eq!(output, expected);
@@ -335,7 +332,10 @@ mod tests {
     fn hex_override() {
         let cases = vec![
             (Value::Hex(3) * Value::Dec(-2), Value::Hex(-6)),
-            ((Value::Hex(0x100) >> Value::Hex(0x2)).unwrap(), Value::Hex(0x40))
+            (
+                (Value::Hex(0x100) >> Value::Hex(0x2)).unwrap(),
+                Value::Hex(0x40)
+            ),
         ];
         for (output, expected) in cases {
             assert_eq!(output, expected);
