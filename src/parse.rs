@@ -26,7 +26,8 @@ fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
 {
 
     if !token_list.is_empty() && token_list[0] == Token::BitWiseNot {
-        let mut e = (!(e_expr(&token_list[1..], env)?))?;
+        let mut e = d_expr(&token_list[1..], env)?;
+        e.value = (!e.value)?;
         e.tokens += 1;
         return Ok(e);
     }
@@ -37,24 +38,29 @@ fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     while index < token_list.len() {
         match token_list[index] {
             Token::BitWiseAnd => {
-                e1 = (e1 & e_expr(&token_list[index + 1..], env)?)?;
-                e1.tokens += 1;
+                let e2 = e_expr(&token_list[index + 1..], env)?;
+                e1.value = (e1.value & e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseOr => {
-                e1 = (e1 | e_expr(&token_list[index + 1..], env)?)?;
-                e1.tokens += 1;
+                let e2 = e_expr(&token_list[index + 1..], env)?;
+                e1.value = (e1.value | e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseXor => {
-                e1 = (e1 ^ e_expr(&token_list[index + 1..], env)?)?;
-                e1.tokens += 1;
+                let e2 = e_expr(&token_list[index + 1..], env)?;
+                e1.value = (e1.value ^ e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseLShift => {
-                e1 = (e1 << e_expr(&token_list[index + 1..], env)?)?;
-                e1.tokens += 1;
+                let e2 = e_expr(&token_list[index + 1..], env)?;
+                e1.value = (e1.value << e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::BitWiseRShift => {
-                e1 = (e1 >> e_expr(&token_list[index + 1..], env)?)?;
-                e1.tokens += 1;
+                let e2 = e_expr(&token_list[index + 1..], env)?;
+                e1.value = (e1.value >> e2.value)?;
+                e1.tokens += e2.tokens + 1;
             }
             Token::Number(ref n) => {
                 return Err(
@@ -77,12 +83,14 @@ fn e_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     while index < token_list.len() {
         match token_list[index] {
             Token::Plus => {
-                t1 = t1 + t_expr(&token_list[index + 1..], env)?;
-                t1.tokens += 1;
+                let t2 = t_expr(&token_list[index + 1..], env)?;
+                t1.value = t1.value + t2.value;
+                t1.tokens += t2.tokens + 1;
             }
             Token::Minus => {
-                t1 = t1 - t_expr(&token_list[index + 1..], env)?;
-                t1.tokens += 1;
+                let t2 = t_expr(&token_list[index + 1..], env)?;
+                t1.value = t1.value - t2.value;
+                t1.tokens += t2.tokens + 1;
             }
             Token::Number(ref n) => {
                 return Err(
@@ -106,16 +114,19 @@ fn t_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     while index < token_list.len() {
         match token_list[index] {
             Token::Multiply => {
-                f1 = f1 * f_expr(&token_list[index + 1..], env)?;
-                f1.tokens += 1;
+                let f2 = f_expr(&token_list[index + 1..], env)?;
+                f1.value = f1.value * f2.value;
+                f1.tokens += f2.tokens + 1;
             }
             Token::Divide => {
-                f1 = (f1 / f_expr(&token_list[index + 1..], env)?)?;
-                f1.tokens += 1;
+                let f2 = f_expr(&token_list[index + 1..], env)?;
+                f1.value = (f1.value / f2.value)?;
+                f1.tokens += f2.tokens + 1;
             }
             Token::Modulo => {
-                f1 = (f1 % f_expr(&token_list[index + 1..], env)?)?;
-                f1.tokens += 1;
+                let f2 = f_expr(&token_list[index + 1..], env)?;
+                f1.value = (f1.value % f2.value)?;
+                f1.tokens += f2.tokens + 1;
             }
             Token::Number(ref n) => {
                 return Err(
@@ -140,15 +151,15 @@ fn f_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
         match token_list[index] {
             Token::Exponent => {
                 let f = f_expr(&token_list[index + 1..], env)?;
-                g1 = g1.pow(f)?;
-                g1.tokens += 1;
+                g1.value = g1.value.pow(f.value)?;
+                g1.tokens += f.tokens + 1;
             }
             Token::Square => {
-                g1 = g1.powu(2);
+                g1.value = g1.value.powu(2);
                 g1.tokens += 1;
             }
             Token::Cube => {
-                g1 = g1.powu(3);
+                g1.value = g1.value.powu(3);
                 g1.tokens += 1;
             }
             Token::Number(ref n) => {
@@ -172,12 +183,12 @@ fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
             Token::Number(ref n) => Ok(IR::new(n.clone(), 1)),
             Token::Atom(ref s) => {
                 if let Some(nargs) = env.arity(s) {
-                    let mut args = Vec::new();
+                    let mut args: Vec<Value> = Vec::new();
                     let mut start = 1;
                     for _ in 0..nargs {
                         let ir = g_expr(&token_list[start..], env)?;
                         start += ir.tokens;
-                        args.push(ir.value());
+                        args.push(ir.value);
                     }
                     let res = env.resolve(s, &args);
                     Ok(IR::new(res?, start))
@@ -186,7 +197,8 @@ fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 }
             }
             Token::Minus => {
-                let mut ir = -(d_expr(&token_list[1..], env)?);
+                let mut ir = d_expr(&token_list[1..], env)?;
+                ir.value = -ir.value;
                 ir.tokens += 1;
                 Ok(ir)
             }
@@ -249,5 +261,5 @@ impl Environment for DefaultEnvironment {
 pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
     where E: Environment
 {
-    d_expr(tokens, env).map(|answer| answer.value().clone())
+    d_expr(tokens, env).map(|answer| answer.value)
 }
