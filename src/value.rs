@@ -96,37 +96,13 @@ pub struct IR {
 }
 
 impl IR {
-    pub fn value(&self) -> &Value {
-        &self.value
+    pub fn value(self) -> Value {
+        self.value
     }
 
     pub fn new<T: Into<Option<usize>>>(value: Value, tokens: T) -> Self {
         IR {
             value,
-            tokens: tokens.into().unwrap_or(0),
-        }
-    }
-
-    /// Construct a new decimal result
-    pub fn dec<T: Into<Option<usize>>>(v: i64, tokens: T) -> Self {
-        IR {
-            value: Value::Dec(v),
-            tokens: tokens.into().unwrap_or(0),
-        }
-    }
-
-    /// Construct a new hexadecimal result
-    pub fn hex<T: Into<Option<usize>>>(v: i64, tokens: T) -> Self {
-        IR {
-            value: Value::Hex(v),
-            tokens: tokens.into().unwrap_or(0),
-        }
-    }
-
-    /// Construt a new floating point result
-    pub fn floating<T: Into<Option<usize>>>(v: f64, tokens: T) -> Self {
-        IR {
-            value: Value::Float(v),
             tokens: tokens.into().unwrap_or(0),
         }
     }

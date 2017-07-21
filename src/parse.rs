@@ -13,7 +13,11 @@ pub trait Environment {
     /// Resolve an atom given the name of the atom and some number of
     /// arguments
     /// Precondition: `args.len() == self.arity(atom)`
-    fn resolve(&mut self, atom: &str, args: &[IR]) -> Result<Value, CalcError>;
+    fn resolve(
+        &mut self,
+        atom: &str,
+        args: &[Value],
+    ) -> Result<Value, CalcError>;
 }
 
 
@@ -173,7 +177,7 @@ fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                     for _ in 0..nargs {
                         let ir = g_expr(&token_list[start..], env)?;
                         start += ir.tokens;
-                        args.push(ir);
+                        args.push(ir.value());
                     }
                     let res = env.resolve(s, &args);
                     Ok(IR::new(res?, start))
@@ -225,14 +229,18 @@ impl Environment for DefaultEnvironment {
         }
     }
 
-    fn resolve(&mut self, atom: &str, args: &[IR]) -> Result<Value, CalcError> {
+    fn resolve(
+        &mut self,
+        atom: &str,
+        args: &[Value],
+    ) -> Result<Value, CalcError> {
         match atom {
             "pi" => Ok(Value::Float(::std::f64::consts::PI)),
             "tau" => Ok(Value::Float(::std::f64::consts::PI * 2.0)),
-            "log" => Ok(Value::Float(args[0].value().as_float().log(10.0))),
-            "sin" => Ok(Value::Float(args[0].value().as_float().sin())),
-            "cos" => Ok(Value::Float(args[0].value().as_float().cos())),
-            "tan" => Ok(Value::Float(args[0].value().as_float().tan())),
+            "log" => Ok(Value::Float(args[0].as_float().log(10.0))),
+            "sin" => Ok(Value::Float(args[0].as_float().sin())),
+            "cos" => Ok(Value::Float(args[0].as_float().cos())),
+            "tan" => Ok(Value::Float(args[0].as_float().tan())),
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
     }
