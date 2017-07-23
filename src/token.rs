@@ -128,6 +128,12 @@ impl OperatorMatch for char {
     }
 }
 
+/// Tokenizes a mathematical expression written written with the standard infix
+/// notation.
+///
+/// Returns a vector of `Token`s in the infix format, if the supplied
+/// expression is valid. This
+/// vector can then be pased into the `parse` function to be evaluated.
 pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     let mut tokens = Vec::with_capacity(input.len());
     let mut chars = input.chars().peekable();
@@ -136,7 +142,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
         if c.is_alphabetic() {
             tokens.push(Token::Atom(consume_atom(&mut chars)));
         } else if c.is_digit(16) || c == '.' {
-            tokens.push(consume_number(&mut chars)?);
+            tokens.push(Token::Number(consume_number(&mut chars)?));
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
@@ -179,6 +185,203 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     Ok(tokens)
 }
 
+/// Tokenizes a mathematical expression written with a polish (prefix) notation.
+///
+/// Returns a vector of `Token`s in the infix format, if the supplied
+/// expression is valid. This
+/// vector can then be pased into the `parse` function to be evaluated.
+pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
+    // NOTE: This function isn't as efficient as it could be. For sake of
+    // compatibility with the
+    // existing infix parser, this function stores and re-arranges tokens in
+    // the infix format;
+    // adding extra parenthesis so that the order of operations aren't followed.
+
+    // A temporary enum that is used for collecting polish values before they
+    // are converted into
+    // tokens for the infix format.
+    #[derive(Debug)]
+    enum PolishValue {
+        Atom(String),
+        Number(Value),
+    }
+    impl From<PolishValue> for Token {
+        fn from(polish: PolishValue) -> Token {
+            match polish {
+                PolishValue::Atom(atom) => Token::Atom(atom),
+                PolishValue::Number(val) => Token::Number(val),
+            }
+        }
+    }
+
+    let mut chars = input.chars().peekable();
+    let mut operators: Vec<Token> = Vec::with_capacity(input.len() / 4);
+    let mut values: Vec<PolishValue> = Vec::with_capacity(input.len() / 3);
+    let mut tokens = Vec::with_capacity(input.len() / 2);
+    let mut parens = 0;
+
+    'outer: loop {
+        // Collect the operators until a number is found.
+        while let Some(&c) = chars.peek() {
+            if c.is_alphabetic() {
+                values.push(PolishValue::Atom(consume_atom(&mut chars)));
+                break;
+            } else if c.is_digit(16) || c == '.' {
+                values.push(PolishValue::Number(consume_number(&mut chars)?));
+                break;
+            } else {
+                match c.check_operator() {
+                    OperatorState::Complete => {
+                        let token = c.operator_type().ok_or_else(
+                            || InvalidOperator(c),
+                        )?;
+                        if token != Token::OpenParen &&
+                            token != Token::CloseParen
+                        {
+                            operators.push(token);
+                        }
+                        chars.next();
+                    }
+                    OperatorState::PotentiallyIncomplete => {
+                        chars.next();
+                        match chars.peek() {
+                            Some(&next_char) if next_char.is_operator() => {
+                                let token =
+                                    [c, next_char].operator_type().ok_or_else(
+                                        || {
+                                            InvalidOperator(c)
+                                        },
+                                    )?;
+                                if token != Token::OpenParen &&
+                                    token != Token::CloseParen
+                                {
+                                    operators.push(token);
+                                }
+                                chars.next();
+                            }
+                            _ => {
+                                let token = c.operator_type().ok_or_else(|| {
+                                    InvalidOperator(c)
+                                })?;
+                                if token != Token::OpenParen &&
+                                    token != Token::CloseParen
+                                {
+                                    operators.push(token);
+                                }
+                            }
+                        }
+                    }
+                    OperatorState::NotAnOperator => {
+                        if c.is_whitespace() {
+                            chars.next();
+                        } else {
+                            let token_string =
+                                consume_until_new_token(&mut chars);
+                            return Err(
+                                CalcError::UnrecognizedToken(token_string),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // Then collect the atoms/numbers, resetting the looping if more
+        // operators are found.
+        while let Some(&c) = chars.peek() {
+            if c.is_alphabetic() {
+                values.push(PolishValue::Atom(consume_atom(&mut chars)));
+            } else if c.is_digit(16) || c == '.' {
+                values.push(PolishValue::Number(consume_number(&mut chars)?));
+            } else if c.is_whitespace() || c == ')' {
+                let _ = chars.next();
+            } else if operators.len() != values.len() {
+                // Either too many or too few values were supplied
+                return Err(CalcError::UnexpectedEndOfInput);
+            } else {
+                // This block executes when multiple sets of arithmetic
+                // operations are entered.
+                // Add parenthesis to work around the order of operations for
+                // infix arithmetic.
+                for _ in 1..operators.len() {
+                    tokens.push(Token::OpenParen);
+                }
+
+                // Operators are processed in reverse, while numbers are
+                // processed forwardly.
+                let mut iterator =
+                    values.drain(..).map(Token::from).zip(
+                        operators.drain(..).rev(),
+                    );
+
+                // The first iteration will not include any closing parenthesis.
+                if let Some((value, operator)) = iterator.next() {
+                    tokens.push(value);
+                    tokens.push(operator);
+                }
+
+                // Each following iteration will append the second number in
+                // the operation,
+                // followed by a closing parenthesis and the next operation in
+                // the list.
+                for (value, operator) in iterator {
+                    tokens.push(value);
+                    tokens.push(Token::CloseParen);
+                    tokens.push(operator);
+                }
+
+                tokens.push(Token::OpenParen);
+                parens += 1;
+                continue 'outer;
+            }
+        }
+
+        if values.len() == 0 || operators.len() != values.len() - 1 {
+            return Err(CalcError::UnexpectedEndOfInput);
+        } else {
+            // Removes the last value from the values vector so that they are
+            // even.
+            // It will be re-added at the end once everything's been collected.
+            let last_value: Token = values.pop().unwrap().into();
+            // Add parenthesis to work around the order of operations for infix
+            // arithmetic.
+            for _ in 1..operators.len() {
+                tokens.push(Token::OpenParen);
+            }
+            // Operators are processed in reverse, while numbers are processed
+            // forwardly.
+            let mut iterator =
+                values.drain(..).map(Token::from).zip(
+                    operators.drain(..).rev(),
+                );
+
+            // The first iteration will not include any closing parenthesis.
+            if let Some((value, operator)) = iterator.next() {
+                tokens.push(value);
+                tokens.push(operator);
+            }
+
+            // Each following iteration will append the second number in the
+            // operation,
+            // followed by a closing parenthesis and the next operation in the
+            // list.
+            for (value, operator) in iterator {
+                tokens.push(value);
+                tokens.push(Token::CloseParen);
+                tokens.push(operator);
+            }
+
+            tokens.push(last_value);
+            for _ in 0..parens {
+                tokens.push(Token::CloseParen);
+            }
+            break 'outer;
+        }
+    }
+
+    Ok(tokens)
+}
+
 fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
     where I: Iterator<Item = char>
 {
@@ -194,7 +397,7 @@ fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
     number
 }
 
-fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
+fn consume_number<I>(input: &mut Peekable<I>) -> Result<Value, CalcError>
     where I: Iterator<Item = char>
 {
     match input.peek() {
@@ -205,10 +408,10 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
                     input.next();
                     let digits = digits(input, 16);
                     let num = i64::from_str_radix(&digits, 16)?;
-                    return Ok(Token::Number(Value::Hex(num)));
+                    return Ok(Value::Hex(num));
                 }
                 Some(&_) => (),
-                None => return Ok(Token::Number(Value::Dec(0))),
+                None => return Ok(Value::Dec(0)),
             }
         }
         Some(_) => (),
@@ -219,9 +422,9 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Token, CalcError>
         input.next();
         let frac = digits(input, 10);
         let num: f64 = [whole, ".".into(), frac].concat().parse()?;
-        Ok(Token::Number(Value::Float(num)))
+        Ok(Value::Float(num))
     } else {
-        Ok(Token::Number(Value::Dec(whole.parse()?)))
+        Ok(Value::Dec(whole.parse()?))
     }
 }
 
