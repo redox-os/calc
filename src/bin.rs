@@ -6,7 +6,7 @@ use std::process::exit;
 
 use std::io::{self, BufRead, stdout, stdin, Write};
 
-use calc::{eval, CalcError};
+use calc::{eval, eval_polish, CalcError};
 
 const PROMPT: &'static str = "[]> ";
 
@@ -44,19 +44,46 @@ impl fmt::Display for RuntimeError {
 pub fn calc(args: Vec<String>) -> Result<(), RuntimeError> {
     let stdout = stdout();
     let mut stdout = stdout.lock();
+
+    // Check if the polish notation flag was given.
+    let (polish, args) = if let Some(arg) = args.get(0) {
+        if arg == "--polish" || arg == "-p" {
+            (true, &args[1..])
+        } else {
+            (false, &args[..])
+        }
+    } else {
+        (false, &args[..])
+    };
+
     if !args.is_empty() {
-        writeln!(stdout, "{}", eval(&args.join(""))?)?;
+        if polish {
+            writeln!(stdout, "{}", eval_polish(&args.join(""))?)?;
+        } else {
+            writeln!(stdout, "{}", eval(&args.join(""))?)?;
+        }
     } else {
         // Print out the prompt before we try to read the first line of stdin
         prompt(&mut stdout)?;
         let stdin = stdin();
-        for line in stdin.lock().lines() {
-            match line?.trim() {
-                "" => (),
-                "exit" => break,
-                s => writeln!(stdout, "{}", eval(s)?)?,
+        if polish {
+            for line in stdin.lock().lines() {
+                match line?.trim() {
+                    "" => (),
+                    "exit" => break,
+                    s => writeln!(stdout, "{}", eval_polish(s)?)?,
+                }
+                prompt(&mut stdout)?;
             }
-            prompt(&mut stdout)?;
+        } else {
+            for line in stdin.lock().lines() {
+                match line?.trim() {
+                    "" => (),
+                    "exit" => break,
+                    s => writeln!(stdout, "{}", eval(s)?)?,
+                }
+                prompt(&mut stdout)?;
+            }
         }
     }
     Ok(())
