@@ -114,3 +114,9 @@ impl From<ParseIntError> for CalcError {
         CalcError::InvalidNumber(data.description().into())
     }
 }
+
+impl From<CalcError> for String {
+    fn from(data: CalcError) -> String {
+        format!("{}", data)
+    }
+}
