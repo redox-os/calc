@@ -4,7 +4,7 @@ use std::fmt;
 use std::env::args;
 use std::process::exit;
 
-use std::io::{self, BufRead, stdout, stdin, Write};
+use std::io::{self, stdin, stdout, BufRead, Write};
 
 use calc::{eval, eval_polish, CalcError};
 

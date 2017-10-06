@@ -1,6 +1,6 @@
 use token::*;
 use error::CalcError;
-use value::{Value, IR};
+use value::{into_float, Value, IR};
 
 /// Represents an environment for evaluating a mathematical expression
 pub trait Environment {
@@ -24,7 +24,6 @@ pub trait Environment {
 fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
     where E: Environment
 {
-
     if !token_list.is_empty() && token_list[0] == Token::BitWiseNot {
         let mut e = d_expr(&token_list[1..], env)?;
         e.value = (!e.value)?;
@@ -236,7 +235,7 @@ impl Environment for DefaultEnvironment {
     fn arity(&self, atom: &str) -> Option<usize> {
         match atom {
             "pi" | "tau" => Some(0),
-            "log" | "sin" | "cos" | "tan" => Some(1),
+            "log" => Some(1),
             _ => None,
         }
     }
@@ -247,12 +246,17 @@ impl Environment for DefaultEnvironment {
         args: &[Value],
     ) -> Result<Value, CalcError> {
         match atom {
-            "pi" => Ok(Value::Float(::std::f64::consts::PI)),
-            "tau" => Ok(Value::Float(::std::f64::consts::PI * 2.0)),
-            "log" => Ok(Value::Float(args[0].as_float().log(10.0))),
-            "sin" => Ok(Value::Float(args[0].as_float().sin())),
-            "cos" => Ok(Value::Float(args[0].as_float().cos())),
-            "tan" => Ok(Value::Float(args[0].as_float().tan())),
+            "pi" => {
+                Ok(Value::Float(d128!(3.1415926535897932384626433832795028)))
+            }
+            "tau" => Ok(Value::Float(
+                d128!(3.1415926535897932384626433832795028) *
+                    into_float(2),
+            )),
+            "log" => Ok(Value::Float(args[0].as_float().log10())),
+            // "sin" => Ok(Value::Float(args[0].as_float().sin())),
+            // "cos" => Ok(Value::Float(args[0].as_float().cos())),
+            // "tan" => Ok(Value::Float(args[0].as_float().tan())),
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
     }
