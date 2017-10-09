@@ -1,3 +1,4 @@
+use decimal::d128;
 use std::fmt;
 use std::ops::*;
 use error::{CalcError, PartialComp};
@@ -14,21 +15,21 @@ pub enum Value {
     /// the
     /// `Dec` constructor.
     Hex(i64),
-    /// A floating point number
-    Float(f64),
+    /// A 128-bit decimal floating point number
+    Float(d128),
 }
 
 impl Value {
     pub fn is_zero(&self) -> bool {
         match *self {
             Value::Dec(n) | Value::Hex(n) => n == 0,
-            Value::Float(f) => f == 0.0,
+            Value::Float(f) => f == d128!(0),
         }
     }
 
-    pub fn as_float(&self) -> f64 {
+    pub fn as_float(&self) -> d128 {
         match *self {
-            Value::Dec(n) | Value::Hex(n) => n as f64,
+            Value::Dec(n) | Value::Hex(n) => n.into(),
             Value::Float(n) => n,
         }
     }
@@ -60,14 +61,18 @@ impl Value {
     /// point
     pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Value
         where F: Fn(i64, i64) -> i64,
-              G: Fn(f64, f64) -> f64
+              G: Fn(d128, d128) -> d128
     {
         match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(g(n, m)),
             (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(g(n, m as f64)),
+            (Value::Float(n), Value::Dec(m)) => {
+                Value::Float(g(n, into_float(m)))
+            }
             (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float(g(n as f64, m)),
+            (Value::Dec(n), Value::Float(m)) => {
+                Value::Float(g(into_float(n), m))
+            }
             (Value::Hex(n), Value::Hex(m)) |
             (Value::Dec(n), Value::Hex(m)) |
             (Value::Hex(n), Value::Dec(m)) => Value::Hex(f(n, m)),
@@ -77,24 +82,24 @@ impl Value {
 
     pub fn pow(self, that: Value) -> Result<Self, CalcError> {
         let value = match (&self, &that) {
-            (&Value::Float(n), &Value::Float(m)) => Value::Float(n.powf(m)),
+            (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
             (&Value::Float(n), &Value::Hex(m)) |
             (&Value::Float(n), &Value::Dec(m)) => {
                 if m > i32::max_value() as i64 {
                     return Err(CalcError::WouldOverflow(
                         PartialComp::binary("**", self, that),
                     ));
-                } else if m < i32::min_value() as i64 {
+                } else if m < i32::min_value().into() {
                     return Err(CalcError::WouldTruncate(
                         PartialComp::binary("**", self, that),
                     ));
                 } else {
-                    Value::Float(n.powi(m as i32))
+                    Value::Float(n.pow(into_float(m)))
                 }
             }
             (&Value::Hex(n), &Value::Float(m)) |
             (&Value::Dec(n), &Value::Float(m)) => {
-                Value::Float((n as f64).powf(m))
+                Value::Float(into_float(n).pow(m))
             }
             (&Value::Hex(n), &Value::Hex(m)) |
             (&Value::Dec(n), &Value::Hex(m)) |
@@ -108,7 +113,7 @@ impl Value {
                         PartialComp::binary("**", self, that),
                     ));
                 } else if m < 0 {
-                    Value::Float((n as f64).powi(m as i32))
+                    Value::Float(into_float(n).pow(into_float(m)))
                 } else {
                     Value::Hex(n.pow(m as u32))
                 }
@@ -123,7 +128,7 @@ impl Value {
                         PartialComp::binary("**", self, that),
                     ));
                 } else if m < 0 {
-                    Value::Float((n as f64).powi(m as i32))
+                    Value::Float(into_float(n).pow(into_float(m)))
                 } else {
                     Value::Dec(n.pow(m as u32))
                 }
@@ -134,7 +139,7 @@ impl Value {
 
     pub fn powu(self, i: u32) -> Self {
         match self {
-            Value::Float(n) => Value::Float(n.powi(i as i32)),
+            Value::Float(n) => Value::Float(n.pow(into_float(i))),
             Value::Dec(n) => Value::Dec(n.pow(i)),
             Value::Hex(n) => Value::Hex(n.pow(i)),
         }
@@ -149,6 +154,10 @@ impl fmt::Display for Value {
             Value::Float(n) => write!(f, "{}", n),
         }
     }
+}
+
+pub fn into_float<INT: Into<d128>>(dec: INT) -> d128 {
+    dec.into()
 }
 
 /// An intermediate result that can be computed by this library.
@@ -203,23 +212,23 @@ impl Div for Value {
         let value = match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(n / m),
             (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(n / m as f64),
+            (Value::Float(n), Value::Dec(m)) => Value::Float(n / into_float(m)),
             (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float(n as f64 / m),
+            (Value::Dec(n), Value::Float(m)) => Value::Float(into_float(n) / m),
             (Value::Hex(n), Value::Hex(m)) |
             (Value::Dec(n), Value::Hex(m)) |
             (Value::Hex(n), Value::Dec(m)) => {
                 if n % m == 0 {
                     Value::Hex(n / m)
                 } else {
-                    Value::Float(n as f64 / m as f64)
+                    Value::Float(into_float(n) / into_float(m))
                 }
             }
             (Value::Dec(n), Value::Dec(m)) => {
                 if n % m == 0 {
                     Value::Dec(n / m)
                 } else {
-                    Value::Float(n as f64 / m as f64)
+                    Value::Float(into_float(n) / into_float(m))
                 }
             }
         };
@@ -314,12 +323,18 @@ mod tests {
     #[test]
     fn float_override() {
         let cases = vec![
-            (Value::Float(3.0) + Value::Dec(1), Value::Float(4.0)),
-            (Value::Hex(5) - Value::Float(4.5), Value::Float(0.5)),
+            (
+                Value::Float(d128!(3)) + Value::Dec(1),
+                Value::Float(d128!(4))
+            ),
+            (
+                Value::Hex(5) - Value::Float(d128!(4.5)),
+                Value::Float(d128!(0.5))
+            ),
             (
                 Value::Hex(24) * Value::Dec(4) *
-                    Value::Float(1.0 / 48.0),
-                Value::Float(2.0)
+                    Value::Float(d128!(1) / d128!(48)),
+                Value::Float(d128!(2))
             ),
         ];
 

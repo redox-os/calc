@@ -1,7 +1,7 @@
 use std::i64;
 use std::fmt;
 use std::iter::Peekable;
-
+use decimal::d128;
 use error::CalcError;
 use error::CalcError::*;
 use value::Value;
@@ -421,7 +421,11 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Value, CalcError>
     if let Some(&'.') = input.peek() {
         input.next();
         let frac = digits(input, 10);
-        let num: f64 = [whole, ".".into(), frac].concat().parse()?;
+        let num = [whole, ".".into(), frac].concat().parse::<d128>().map_err(
+            |_| {
+                CalcError::InvalidNumber("invalid float".into())
+            },
+        )?;
         Ok(Value::Float(num))
     } else {
         Ok(Value::Dec(whole.parse()?))

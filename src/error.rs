@@ -1,7 +1,7 @@
 use std::fmt;
 use std::error::Error;
 
-use std::num::{ParseIntError, ParseFloatError};
+use std::num::ParseIntError;
 
 /// Represents a partial computation that can be captured as part of an
 /// error message.
@@ -100,12 +100,6 @@ impl fmt::Display for CalcError {
             UnexpectedEndOfInput => write!(f, "unexpected end of input"),
             UnmatchedParenthesis => write!(f, "unmatched patenthesis"),
         }
-    }
-}
-
-impl From<ParseFloatError> for CalcError {
-    fn from(data: ParseFloatError) -> CalcError {
-        CalcError::InvalidNumber(data.description().into())
     }
 }
 

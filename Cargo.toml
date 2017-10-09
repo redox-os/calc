@@ -1,23 +1,32 @@
 [package]
-name = "calculate"
-version = "0.3.0"
 authors = ["Hunter Goldstein <hunter.d.goldstein@gmail.com>"]
-description = "Rust library for parsing and processing arithmetic expressions"
-license-file = "LICENSE"
-readme = "README.md"
-homepage = "https://github.com/redox-os/calc"
-repository = "https://github.com/redox-os/calc"
-include = [
-  "**/*.rs",
-  "Cargo.toml",
+categories = [
+    "science",
+    "parsing",
 ]
-keywords = ["math", "calculator"]
-categories = ["science", "parsing"]
-
-[lib]
-name = "calc"
-path = "src/lib.rs"
+description = "Rust library for parsing and processing arithmetic expressions"
+homepage = "https://github.com/redox-os/calc"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
+keywords = [
+    "math",
+    "calculator",
+]
+license-file = "LICENSE"
+name = "calculate"
+readme = "README.md"
+repository = "https://github.com/redox-os/calc"
+version = "0.3.0"
 
 [[bin]]
 name = "calc"
 path = "src/bin.rs"
+
+[dependencies]
+decimal = "2.0.0"
+
+[lib]
+name = "calc"
+path = "src/lib.rs"
