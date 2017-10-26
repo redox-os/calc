@@ -10,8 +10,8 @@ mod bench;
 
 mod error;
 mod token;
-mod parse;
-mod value;
+pub mod parse;
+pub mod value;
 
 pub use value::Value;
 pub use error::CalcError;
