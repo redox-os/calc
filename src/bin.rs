@@ -1,13 +1,15 @@
 extern crate calc;
+extern crate clap;
 extern crate liner;
 
 use std::fmt;
-use std::env::args;
 use std::process::exit;
 
 use std::io::{self, stdout, Write};
 
 use calc::{eval, eval_polish, CalcError};
+
+use clap::{Arg, App};
 
 use liner::Context;
 
@@ -44,50 +46,64 @@ impl fmt::Display for RuntimeError {
     }
 }
 
-pub fn calc(args: Vec<String>) -> Result<(), RuntimeError> {
+pub fn calc() -> Result<(), RuntimeError> {
     let stdout = stdout();
     let mut stdout = stdout.lock();
 
-    // Check if the polish notation flag was given.
-    let (polish, args) = if let Some(arg) = args.get(0) {
-        if arg == "--polish" || arg == "-p" {
-            (true, &args[1..])
-        } else {
-            (false, &args[..])
-        }
-    } else {
-        (false, &args[..])
-    };
+    let matches = App::new("calc")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("Hunter Goldstein <hunter.d.goldstein@gmail.com>")
+        .about("Floating point calculator")
+        .set_term_width(80)
+        .arg(Arg::with_name("polish")
+             .short("p")
+             .long("polish")
+             .help("Parse expressions using polish notation versus infix notation"))
+        .arg(Arg::with_name("expr")
+             .help("Expression to evaluate by this program. If this argument is missing, enter interactive mode.")
+             .multiple(true)
+             .value_name("EXPR"))
+        .get_matches();
 
-    if !args.is_empty() {
-        if polish {
-            writeln!(stdout, "{}", eval_polish(&args.join(""))?)?;
-        } else {
-            writeln!(stdout, "{}", eval(&args.join(""))?)?;
-        }
-    } else {
-        let mut con = Context::new();
-        loop {
-            let line = con.read_line(PROMPT, &mut |_| {})?;
-            match line.trim() {
-                "" => (),
-                "exit" => break,
-                s => {
-                    writeln!(
-                        stdout,
-                        "{}",
-                        if polish { eval_polish(s)? } else { eval(s)? }
-                    )?
+    // Check if the polish notation flag was given.
+    let polish = matches.is_present("polish");
+
+    match matches.values_of("expr") {
+        Some(values) => {
+            writeln!(
+                stdout,
+                "{}",
+                if polish {
+                    eval_polish(&values.fold(String::new(), |acc, s| acc + s))?
+                } else {
+                    eval(&values.fold(String::new(), |acc, s| acc + s))?
                 }
+            )?;
+        }
+        None => {
+            let mut con = Context::new();
+            loop {
+                let line = con.read_line(PROMPT, &mut |_| {})?;
+                match line.trim() {
+                    "" => (),
+                    "exit" => break,
+                    s => {
+                        writeln!(
+                            stdout,
+                            "{}",
+                            if polish { eval_polish(s)? } else { eval(s)? }
+                        )?
+                    }
+                }
+                con.history.push(line.into())?;
             }
-            con.history.push(line.into())?;
         }
     }
     Ok(())
 }
 
 fn main() {
-    let code = match calc(args().skip(1).collect()) {
+    let code = match calc() {
         Ok(()) => 0,
         Err(e) => {
             println!("{}", e);
