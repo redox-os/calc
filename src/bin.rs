@@ -1,12 +1,15 @@
 extern crate calc;
+extern crate liner;
 
 use std::fmt;
 use std::env::args;
 use std::process::exit;
 
-use std::io::{self, stdin, stdout, BufRead, Write};
+use std::io::{self, stdout, Write};
 
 use calc::{eval, eval_polish, CalcError};
+
+use liner::Context;
 
 const PROMPT: &'static str = "[]> ";
 
@@ -63,27 +66,21 @@ pub fn calc(args: Vec<String>) -> Result<(), RuntimeError> {
             writeln!(stdout, "{}", eval(&args.join(""))?)?;
         }
     } else {
-        // Print out the prompt before we try to read the first line of stdin
-        prompt(&mut stdout)?;
-        let stdin = stdin();
-        if polish {
-            for line in stdin.lock().lines() {
-                match line?.trim() {
-                    "" => (),
-                    "exit" => break,
-                    s => writeln!(stdout, "{}", eval_polish(s)?)?,
+        let mut con = Context::new();
+        loop {
+            let line = con.read_line(PROMPT, &mut |_| {})?;
+            match line.trim() {
+                "" => (),
+                "exit" => break,
+                s => {
+                    writeln!(
+                        stdout,
+                        "{}",
+                        if polish { eval_polish(s)? } else { eval(s)? }
+                    )?
                 }
-                prompt(&mut stdout)?;
             }
-        } else {
-            for line in stdin.lock().lines() {
-                match line?.trim() {
-                    "" => (),
-                    "exit" => break,
-                    s => writeln!(stdout, "{}", eval(s)?)?,
-                }
-                prompt(&mut stdout)?;
-            }
+            con.history.push(line.into())?;
         }
     }
     Ok(())

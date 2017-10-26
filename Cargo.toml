@@ -26,6 +26,7 @@ path = "src/bin.rs"
 
 [dependencies]
 decimal = "2.0.0"
+liner = "0.4.2"
 
 [lib]
 name = "calc"
