@@ -14,7 +14,7 @@
 Add `calc` as a dependency in your `Cargo.toml`:
 ```toml
 [dependencies]
-calculate = "0.1.*"
+calculate = "0.4.*"
 ```
 
 Then make use of the library functions:
