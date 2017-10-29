@@ -1,3 +1,4 @@
+extern crate atty;
 extern crate calc;
 extern crate clap;
 extern crate liner;
@@ -5,7 +6,7 @@ extern crate liner;
 use std::fmt;
 use std::process::exit;
 
-use std::io::{self, stdout, Write};
+use std::io::{self, stdout, Write, BufRead};
 
 use calc::{eval, eval_polish, CalcError};
 
@@ -68,34 +69,42 @@ pub fn calc() -> Result<(), RuntimeError> {
     // Check if the polish notation flag was given.
     let polish = matches.is_present("polish");
 
+    macro_rules! eval {
+        ($expr:expr) => {
+            if polish {
+                eval_polish($expr)?
+            } else {
+                eval($expr)?
+            }
+        }
+    }
+
     match matches.values_of("expr") {
         Some(values) => {
             writeln!(
                 stdout,
                 "{}",
-                if polish {
-                    eval_polish(&values.fold(String::new(), |acc, s| acc + s))?
-                } else {
-                    eval(&values.fold(String::new(), |acc, s| acc + s))?
-                }
+                eval!(&values.fold(String::new(), |acc, s| acc + s)),
             )?;
         }
         None => {
-            let mut con = Context::new();
-            loop {
-                let line = con.read_line(PROMPT, &mut |_| {})?;
-                match line.trim() {
-                    "" => (),
-                    "exit" => break,
-                    s => {
-                        writeln!(
-                            stdout,
-                            "{}",
-                            if polish { eval_polish(s)? } else { eval(s)? }
-                        )?
+            if atty::is(atty::Stream::Stdin) {
+                let mut con = Context::new();
+                loop {
+                    let line = con.read_line(PROMPT, &mut |_| {})?;
+                    match line.trim() {
+                        "" => (),
+                        "exit" => break,
+                        s => writeln!(stdout, "{}", eval!(s))?,
                     }
+                    con.history.push(line.into())?;
                 }
-                con.history.push(line.into())?;
+            } else {
+                let stdin = io::stdin();
+                let mut lock = stdin.lock();
+                for line in lock.lines() {
+                    writeln!(stdout, "{}", eval!(&line?))?;
+                }
             }
         }
     }
