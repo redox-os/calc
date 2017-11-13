@@ -196,10 +196,18 @@ fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 }
             }
             Token::Minus => {
-                let mut ir = d_expr(&token_list[1..], env)?;
-                ir.value = -ir.value;
-                ir.tokens += 1;
-                Ok(ir)
+                if token_list.len() >= 2 {
+                    if let Token::Number(ref n) = token_list[1] {
+                        Ok(IR::new(-n.clone(), 2))
+                    } else {
+                        let mut ir = d_expr(&token_list[1..], env)?;
+                        ir.value = -ir.value;
+                        ir.tokens += 1;
+                        Ok(ir)
+                    }
+                } else {
+                    Err(CalcError::UnexpectedEndOfInput)
+                }
             }
             Token::OpenParen => {
                 let mut ir = d_expr(&token_list[1..], env)?;
@@ -266,4 +274,38 @@ pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
     where E: Environment
 {
     d_expr(tokens, env).map(|answer| answer.value)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn unary_minus() {
+        let expr = [
+            Token::Minus,
+            Token::Number(Value::Dec(1)),
+            Token::Plus,
+            Token::Number(Value::Dec(1)),
+        ];
+        let expected = Value::Dec(0);
+        let mut env = DefaultEnvironment;
+        assert_eq!(super::parse(&expr, &mut env), Ok(expected));
+    }
+
+    #[test]
+    fn function_binding() {
+        let expr = [
+            Token::Atom("log".into()),
+            Token::Number(Value::Float(d128!(4.0))),
+            Token::Divide,
+            Token::Atom("log".into()),
+            Token::Number(Value::Float(d128!(2.0))),
+        ];
+        let expected = Value::Float(d128!(2.0));
+        let mut env = DefaultEnvironment;
+        assert_eq!(super::parse(&expr, &mut env), Ok(expected));
+    }
+
 }
