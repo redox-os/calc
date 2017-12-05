@@ -29,6 +29,7 @@ atty = "0.2.3"
 clap = "2"
 decimal = "2.0.0"
 liner = "0.4.2"
+num = "0.1"
 
 [lib]
 name = "calc"
