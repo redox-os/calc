@@ -19,6 +19,37 @@ pub enum Value {
     Float(d128),
 }
 
+mod safe_ops {
+
+    use super::{Value, into_float};
+
+    fn highest_bit(mut n: u64) -> u64 {
+        let mut bits = 0;
+        while n != 0 {
+            bits += 1;
+            n >>= 1;
+        }
+        return bits;
+    }
+
+    pub fn int_pow(n: i64, m: i64, as_hex: bool) -> Option<super::Value> {
+        let bits = highest_bit(n as u64);
+        match bits.checked_mul(m as u64) {
+            Some(m) if m > 64 => None,
+            Some(_) => {
+                if m < 0 {
+                    Some(Value::Float(into_float(n).pow(into_float(m))))
+                } else {
+                    let res = n.pow(m as u32);
+                    Some(if as_hex {Value::Hex(res)} else {Value::Dec(res)})
+                }
+            }
+            None => None,
+        }
+    }
+
+}
+
 impl Value {
     pub fn is_zero(&self) -> bool {
         match *self {
@@ -104,33 +135,19 @@ impl Value {
             (&Value::Hex(n), &Value::Hex(m)) |
             (&Value::Dec(n), &Value::Hex(m)) |
             (&Value::Hex(n), &Value::Dec(m)) => {
-                if m > i32::max_value() as i64 {
-                    return Err(CalcError::WouldOverflow(
+                match safe_ops::int_pow(n, m, true) {
+                    Some(v) => v,
+                    None => return Err(CalcError::WouldOverflow(
                         PartialComp::binary("**", self, that),
-                    ));
-                } else if m < i32::min_value() as i64 {
-                    return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", self, that),
-                    ));
-                } else if m < 0 {
-                    Value::Float(into_float(n).pow(into_float(m)))
-                } else {
-                    Value::Hex(n.pow(m as u32))
+                    )),
                 }
             }
             (&Value::Dec(n), &Value::Dec(m)) => {
-                if m > i32::max_value() as i64 {
-                    return Err(CalcError::WouldOverflow(
+                match safe_ops::int_pow(n, m, false) {
+                    Some(v) => v,
+                    None => return Err(CalcError::WouldOverflow(
                         PartialComp::binary("**", self, that),
-                    ));
-                } else if m < i32::min_value() as i64 {
-                    return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", self, that),
-                    ));
-                } else if m < 0 {
-                    Value::Float(into_float(n).pow(into_float(m)))
-                } else {
-                    Value::Dec(n.pow(m as u32))
+                    )),
                 }
             }
         };
@@ -355,6 +372,16 @@ mod tests {
         for (output, expected) in cases {
             assert_eq!(output, expected);
         }
+    }
+
+    #[test]
+    fn pow_overflow() {
+        let lhs = Value::Dec(2);
+        let rhs = Value::Dec(63);
+        let out = Err(CalcError::WouldOverflow(
+                        PartialComp::binary("**", lhs, rhs),
+                    ));
+        assert_eq!(out, Value::Dec(2).pow(Value::Dec(63)));
     }
 
 }
