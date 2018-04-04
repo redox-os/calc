@@ -1,5 +1,5 @@
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 use std::num::ParseIntError;
 
@@ -7,7 +7,10 @@ use std::num::ParseIntError;
 /// error message.
 #[derive(Debug, PartialEq)]
 pub enum PartialComp {
-    Unary { op: String, arg: String },
+    Unary {
+        op: String,
+        arg: String,
+    },
     Binary {
         op: String,
         lhs: String,
@@ -17,8 +20,9 @@ pub enum PartialComp {
 
 impl PartialComp {
     pub fn unary<T, U>(op: T, arg: U) -> Self
-        where T: ToString,
-              U: ToString
+    where
+        T: ToString,
+        U: ToString,
     {
         PartialComp::Unary {
             op: op.to_string(),
@@ -27,9 +31,10 @@ impl PartialComp {
     }
 
     pub fn binary<T, U, V>(op: T, lhs: U, rhs: V) -> Self
-        where T: ToString,
-              U: ToString,
-              V: ToString
+    where
+        T: ToString,
+        U: ToString,
+        V: ToString,
     {
         PartialComp::Binary {
             op: op.to_string(),
@@ -42,9 +47,10 @@ impl PartialComp {
 impl fmt::Display for PartialComp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            PartialComp::Unary { ref op, ref arg } => {
-                write!(f, "{} {}", op, arg)
-            }
+            PartialComp::Unary {
+                ref op,
+                ref arg,
+            } => write!(f, "{} {}", op, arg),
             PartialComp::Binary {
                 ref op,
                 ref lhs,
@@ -85,9 +91,11 @@ impl fmt::Display for CalcError {
             UnrecognizedToken(ref token) => {
                 write!(f, "unrecognized token: {}", token)
             }
-            UnexpectedToken(ref token, ref kind) => {
-                write!(f, "expected {} token, got {} instead", kind, token)
-            }
+            UnexpectedToken(ref token, ref kind) => write!(
+                f,
+                "expected {} token, got {} instead",
+                kind, token
+            ),
             UnknownAtom(ref atom) => {
                 write!(f, "unknown variable or function '{}'", atom)
             }

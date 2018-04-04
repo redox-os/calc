@@ -1,9 +1,9 @@
-use std::i64;
-use std::fmt;
-use std::iter::Peekable;
 use decimal::d128;
 use error::CalcError;
 use error::CalcError::*;
+use std::fmt;
+use std::i64;
+use std::iter::Peekable;
 use value::Value;
 
 /// Tokens used for parsing an arithmetic expression
@@ -67,8 +67,8 @@ trait IsOperator {
 impl IsOperator for char {
     fn is_operator(self) -> bool {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' |
-            '%' | '(' | ')' | '*' | '<' => true,
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>'
+            | '%' | '(' | ')' | '*' | '<' => true,
             _ => false,
         }
     }
@@ -81,8 +81,8 @@ trait CheckOperator {
 impl CheckOperator for char {
     fn check_operator(self) -> OperatorState {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%' |
-            '(' | ')' => OperatorState::Complete,
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%'
+            | '(' | ')' => OperatorState::Complete,
             '*' | '<' | '>' => OperatorState::PotentiallyIncomplete,
             _ => OperatorState::NotAnOperator,
         }
@@ -146,28 +146,22 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    tokens.push(
-                        c.operator_type().ok_or_else(|| InvalidOperator(c))?,
-                    );
+                    tokens.push(c.operator_type()
+                        .ok_or_else(|| InvalidOperator(c))?);
                     chars.next();
                 }
                 OperatorState::PotentiallyIncomplete => {
                     chars.next();
                     match chars.peek() {
                         Some(&next_char) if next_char.is_operator() => {
-                            tokens.push(
-                                [c, next_char].operator_type().ok_or_else(
-                                    || {
-                                        InvalidOperator(c)
-                                    },
-                                )?,
-                            );
+                            tokens.push([c, next_char]
+                                .operator_type()
+                                .ok_or_else(|| InvalidOperator(c))?);
                             chars.next();
                         }
                         _ => {
-                            tokens.push(c.operator_type().ok_or_else(
-                                || InvalidOperator(c),
-                            )?);
+                            tokens.push(c.operator_type()
+                                .ok_or_else(|| InvalidOperator(c))?);
                         }
                     }
                 }
@@ -232,11 +226,10 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
             } else {
                 match c.check_operator() {
                     OperatorState::Complete => {
-                        let token = c.operator_type().ok_or_else(
-                            || InvalidOperator(c),
-                        )?;
-                        if token != Token::OpenParen &&
-                            token != Token::CloseParen
+                        let token = c.operator_type()
+                            .ok_or_else(|| InvalidOperator(c))?;
+                        if token != Token::OpenParen
+                            && token != Token::CloseParen
                         {
                             operators.push(token);
                         }
@@ -246,25 +239,21 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                         chars.next();
                         match chars.peek() {
                             Some(&next_char) if next_char.is_operator() => {
-                                let token =
-                                    [c, next_char].operator_type().ok_or_else(
-                                        || {
-                                            InvalidOperator(c)
-                                        },
-                                    )?;
-                                if token != Token::OpenParen &&
-                                    token != Token::CloseParen
+                                let token = [c, next_char]
+                                    .operator_type()
+                                    .ok_or_else(|| InvalidOperator(c))?;
+                                if token != Token::OpenParen
+                                    && token != Token::CloseParen
                                 {
                                     operators.push(token);
                                 }
                                 chars.next();
                             }
                             _ => {
-                                let token = c.operator_type().ok_or_else(|| {
-                                    InvalidOperator(c)
-                                })?;
-                                if token != Token::OpenParen &&
-                                    token != Token::CloseParen
+                                let token = c.operator_type()
+                                    .ok_or_else(|| InvalidOperator(c))?;
+                                if token != Token::OpenParen
+                                    && token != Token::CloseParen
                                 {
                                     operators.push(token);
                                 }
@@ -277,9 +266,9 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                         } else {
                             let token_string =
                                 consume_until_new_token(&mut chars);
-                            return Err(
-                                CalcError::UnrecognizedToken(token_string),
-                            );
+                            return Err(CalcError::UnrecognizedToken(
+                                token_string,
+                            ));
                         }
                     }
                 }
@@ -309,10 +298,10 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
 
                 // Operators are processed in reverse, while numbers are
                 // processed forwardly.
-                let mut iterator =
-                    values.drain(..).map(Token::from).zip(
-                        operators.drain(..).rev(),
-                    );
+                let mut iterator = values
+                    .drain(..)
+                    .map(Token::from)
+                    .zip(operators.drain(..).rev());
 
                 // The first iteration will not include any closing parenthesis.
                 if let Some((value, operator)) = iterator.next() {
@@ -350,10 +339,10 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
             }
             // Operators are processed in reverse, while numbers are processed
             // forwardly.
-            let mut iterator =
-                values.drain(..).map(Token::from).zip(
-                    operators.drain(..).rev(),
-                );
+            let mut iterator = values
+                .drain(..)
+                .map(Token::from)
+                .zip(operators.drain(..).rev());
 
             // The first iteration will not include any closing parenthesis.
             if let Some((value, operator)) = iterator.next() {
@@ -383,7 +372,8 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
 }
 
 fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
-    where I: Iterator<Item = char>
+where
+    I: Iterator<Item = char>,
 {
     let mut number = String::new();
     while let Some(&c) = input.peek() {
@@ -398,7 +388,8 @@ fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
 }
 
 fn consume_number<I>(input: &mut Peekable<I>) -> Result<Value, CalcError>
-    where I: Iterator<Item = char>
+where
+    I: Iterator<Item = char>,
 {
     match input.peek() {
         Some(&'0') => {
@@ -421,11 +412,10 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Value, CalcError>
     if let Some(&'.') = input.peek() {
         input.next();
         let frac = digits(input, 10);
-        let num = [whole, ".".into(), frac].concat().parse::<d128>().map_err(
-            |_| {
-                CalcError::InvalidNumber("invalid float".into())
-            },
-        )?;
+        let num = [whole, ".".into(), frac]
+            .concat()
+            .parse::<d128>()
+            .map_err(|_| CalcError::InvalidNumber("invalid float".into()))?;
         Ok(Value::Float(num))
     } else {
         Ok(Value::Dec(whole.parse()?))
@@ -450,12 +440,11 @@ fn consume_atom<I: Iterator<Item = char>>(input: &mut Peekable<I>) -> String {
 
 fn consume_until_new_token<I: Iterator<Item = char>>(input: &mut I) -> String {
     input
-        .take_while(
-            |c| !(c.is_whitespace() || c.is_operator() || c.is_digit(10)),
-        )
+        .take_while(|c| {
+            !(c.is_whitespace() || c.is_operator() || c.is_digit(10))
+        })
         .collect()
 }
-
 
 #[cfg(test)]
 mod tests {

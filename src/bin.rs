@@ -6,11 +6,11 @@ extern crate liner;
 use std::fmt;
 use std::process::exit;
 
-use std::io::{self, stdout, Write, BufRead};
+use std::io::{self, stdout, BufRead, Write};
 
 use calc::{eval, eval_polish, CalcError};
 
-use clap::{Arg, App};
+use clap::{App, Arg};
 
 use liner::Context;
 
@@ -76,7 +76,7 @@ pub fn calc() -> Result<(), RuntimeError> {
             } else {
                 eval($expr)?
             }
-        }
+        };
     }
 
     match matches.values_of("expr") {

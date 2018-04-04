@@ -1,5 +1,5 @@
-use token::*;
 use error::CalcError;
+use token::*;
 use value::{into_float, Value, IR};
 
 /// Represents an environment for evaluating a mathematical expression
@@ -20,9 +20,9 @@ pub trait Environment {
     ) -> Result<Value, CalcError>;
 }
 
-
 fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
-    where E: Environment
+where
+    E: Environment,
 {
     if !token_list.is_empty() && token_list[0] == Token::BitWiseNot {
         let mut e = d_expr(&token_list[1..], env)?;
@@ -62,9 +62,10 @@ fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 e1.tokens += e2.tokens + 1;
             }
             Token::Number(ref n) => {
-                return Err(
-                    CalcError::UnexpectedToken(n.to_string(), "operator"),
-                );
+                return Err(CalcError::UnexpectedToken(
+                    n.to_string(),
+                    "operator",
+                ));
             }
             _ => break,
         };
@@ -74,7 +75,8 @@ fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
 }
 // Addition and subtraction
 fn e_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
-    where E: Environment
+where
+    E: Environment,
 {
     let mut t1 = t_expr(token_list, env)?;
     let mut index = t1.tokens;
@@ -92,9 +94,10 @@ fn e_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 t1.tokens += t2.tokens + 1;
             }
             Token::Number(ref n) => {
-                return Err(
-                    CalcError::UnexpectedToken(n.to_string(), "operator"),
-                )
+                return Err(CalcError::UnexpectedToken(
+                    n.to_string(),
+                    "operator",
+                ))
             }
             _ => break,
         };
@@ -105,7 +108,8 @@ fn e_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
 
 // Multiplication and division
 fn t_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
-    where E: Environment
+where
+    E: Environment,
 {
     let mut f1 = f_expr(token_list, env)?;
     let mut index = f1.tokens;
@@ -128,9 +132,10 @@ fn t_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 f1.tokens += f2.tokens + 1;
             }
             Token::Number(ref n) => {
-                return Err(
-                    CalcError::UnexpectedToken(n.to_string(), "operator"),
-                );
+                return Err(CalcError::UnexpectedToken(
+                    n.to_string(),
+                    "operator",
+                ));
             }
             _ => break,
         }
@@ -141,7 +146,8 @@ fn t_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
 
 // Exponentiation
 fn f_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
-    where E: Environment
+where
+    E: Environment,
 {
     let mut g1 = g_expr(token_list, env)?; // was g1
     let mut index = g1.tokens;
@@ -162,9 +168,10 @@ fn f_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
                 g1.tokens += 1;
             }
             Token::Number(ref n) => {
-                return Err(
-                    CalcError::UnexpectedToken(n.to_string(), "operator"),
-                );
+                return Err(CalcError::UnexpectedToken(
+                    n.to_string(),
+                    "operator",
+                ));
             }
             _ => break,
         }
@@ -175,7 +182,8 @@ fn f_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
 
 // Numbers, parenthesized expressions, and atoms
 fn g_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
-    where E: Environment
+where
+    E: Environment,
 {
     if !token_list.is_empty() {
         match token_list[0] {
@@ -254,12 +262,11 @@ impl Environment for DefaultEnvironment {
         args: &[Value],
     ) -> Result<Value, CalcError> {
         match atom {
-            "pi" => {
-                Ok(Value::Float(d128!(3.1415926535897932384626433832795028)))
-            }
+            "pi" => Ok(Value::Float(d128!(
+                3.1415926535897932384626433832795028
+            ))),
             "tau" => Ok(Value::Float(
-                d128!(3.1415926535897932384626433832795028) *
-                    into_float(2),
+                d128!(3.1415926535897932384626433832795028) * into_float(2),
             )),
             "log" => Ok(Value::Float(args[0].as_float().log10())),
             // "sin" => Ok(Value::Float(args[0].as_float().sin())),
@@ -271,7 +278,8 @@ impl Environment for DefaultEnvironment {
 }
 
 pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
-    where E: Environment
+where
+    E: Environment,
 {
     d_expr(tokens, env).map(|answer| answer.value)
 }

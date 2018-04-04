@@ -1,7 +1,7 @@
 use decimal::d128;
+use error::{CalcError, PartialComp};
 use std::fmt;
 use std::ops::*;
-use error::{CalcError, PartialComp};
 
 /// Represents a canonical value that can be calculated by this library
 #[derive(Clone, Debug, PartialEq)]
@@ -21,7 +21,7 @@ pub enum Value {
 
 mod safe_ops {
 
-    use super::{Value, into_float};
+    use super::{into_float, Value};
 
     fn highest_bit(mut n: u64) -> u64 {
         let mut bits = 0;
@@ -41,7 +41,11 @@ mod safe_ops {
                     Some(Value::Float(into_float(n).pow(into_float(m))))
                 } else {
                     let res = n.pow(m as u32);
-                    Some(if as_hex {Value::Hex(res)} else {Value::Dec(res)})
+                    Some(if as_hex {
+                        Value::Hex(res)
+                    } else {
+                        Value::Dec(res)
+                    })
                 }
             }
             None => None,
@@ -73,17 +77,21 @@ impl Value {
         op: T,
         f: F,
     ) -> Result<Value, CalcError>
-        where F: Fn(i64, i64) -> i64,
-              T: ToString
+    where
+        F: Fn(i64, i64) -> i64,
+        T: ToString,
     {
         match (self, that) {
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) |
-            (Value::Dec(n), Value::Hex(m)) => Ok(Value::Hex(f(n, m))),
+            (Value::Hex(n), Value::Hex(m))
+            | (Value::Hex(n), Value::Dec(m))
+            | (Value::Dec(n), Value::Hex(m)) => Ok(Value::Hex(f(n, m))),
             (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m))),
-            (v1 @ Value::Float(_), v2 @ _) |
-            (v1 @ _, v2 @ Value::Float(_)) => {
-                Err(CalcError::BadTypes(PartialComp::binary(op, v1, v2)))
+            (v1 @ Value::Float(_), v2 @ _) | (v1 @ _, v2 @ Value::Float(_)) => {
+                Err(CalcError::BadTypes(PartialComp::binary(
+                    op,
+                    v1,
+                    v2,
+                )))
             }
         }
     }
@@ -91,66 +99,72 @@ impl Value {
     /// Represents a computation that will cast integer types to floating
     /// point
     pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Value
-        where F: Fn(i64, i64) -> i64,
-              G: Fn(d128, d128) -> d128
+    where
+        F: Fn(i64, i64) -> i64,
+        G: Fn(d128, d128) -> d128,
     {
         match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(g(n, m)),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => {
+            (Value::Float(n), Value::Hex(m))
+            | (Value::Float(n), Value::Dec(m)) => {
                 Value::Float(g(n, into_float(m)))
             }
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => {
+            (Value::Hex(n), Value::Float(m))
+            | (Value::Dec(n), Value::Float(m)) => {
                 Value::Float(g(into_float(n), m))
             }
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => Value::Hex(f(n, m)),
+            (Value::Hex(n), Value::Hex(m))
+            | (Value::Dec(n), Value::Hex(m))
+            | (Value::Hex(n), Value::Dec(m)) => Value::Hex(f(n, m)),
             (Value::Dec(n), Value::Dec(m)) => Value::Dec(f(n, m)),
         }
     }
 
     pub fn pow(self, that: Value) -> Result<Self, CalcError> {
-        let value = match (&self, &that) {
-            (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
-            (&Value::Float(n), &Value::Hex(m)) |
-            (&Value::Float(n), &Value::Dec(m)) => {
-                if m > i32::max_value() as i64 {
-                    return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", self, that),
-                    ));
-                } else if m < i32::min_value().into() {
-                    return Err(CalcError::WouldTruncate(
-                        PartialComp::binary("**", self, that),
-                    ));
-                } else {
-                    Value::Float(n.pow(into_float(m)))
+        let value =
+            match (&self, &that) {
+                (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
+                (&Value::Float(n), &Value::Hex(m))
+                | (&Value::Float(n), &Value::Dec(m)) => {
+                    if m > i32::max_value() as i64 {
+                        return Err(CalcError::WouldOverflow(
+                            PartialComp::binary("**", self, that),
+                        ));
+                    } else if m < i32::min_value().into() {
+                        return Err(CalcError::WouldTruncate(
+                            PartialComp::binary("**", self, that),
+                        ));
+                    } else {
+                        Value::Float(n.pow(into_float(m)))
+                    }
                 }
-            }
-            (&Value::Hex(n), &Value::Float(m)) |
-            (&Value::Dec(n), &Value::Float(m)) => {
-                Value::Float(into_float(n).pow(m))
-            }
-            (&Value::Hex(n), &Value::Hex(m)) |
-            (&Value::Dec(n), &Value::Hex(m)) |
-            (&Value::Hex(n), &Value::Dec(m)) => {
-                match safe_ops::int_pow(n, m, true) {
-                    Some(v) => v,
-                    None => return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", self, that),
-                    )),
+                (&Value::Hex(n), &Value::Float(m))
+                | (&Value::Dec(n), &Value::Float(m)) => {
+                    Value::Float(into_float(n).pow(m))
                 }
-            }
-            (&Value::Dec(n), &Value::Dec(m)) => {
-                match safe_ops::int_pow(n, m, false) {
-                    Some(v) => v,
-                    None => return Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", self, that),
-                    )),
+                (&Value::Hex(n), &Value::Hex(m))
+                | (&Value::Dec(n), &Value::Hex(m))
+                | (&Value::Hex(n), &Value::Dec(m)) => {
+                    match safe_ops::int_pow(n, m, true) {
+                        Some(v) => v,
+                        None => {
+                            return Err(CalcError::WouldOverflow(
+                                PartialComp::binary("**", self, that),
+                            ))
+                        }
+                    }
                 }
-            }
-        };
+                (&Value::Dec(n), &Value::Dec(m)) => {
+                    match safe_ops::int_pow(n, m, false) {
+                        Some(v) => v,
+                        None => {
+                            return Err(CalcError::WouldOverflow(
+                                PartialComp::binary("**", self, that),
+                            ))
+                        }
+                    }
+                }
+            };
         Ok(value)
     }
 
@@ -228,13 +242,17 @@ impl Div for Value {
         }
         let value = match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(n / m),
-            (Value::Float(n), Value::Hex(m)) |
-            (Value::Float(n), Value::Dec(m)) => Value::Float(n / into_float(m)),
-            (Value::Hex(n), Value::Float(m)) |
-            (Value::Dec(n), Value::Float(m)) => Value::Float(into_float(n) / m),
-            (Value::Hex(n), Value::Hex(m)) |
-            (Value::Dec(n), Value::Hex(m)) |
-            (Value::Hex(n), Value::Dec(m)) => {
+            (Value::Float(n), Value::Hex(m))
+            | (Value::Float(n), Value::Dec(m)) => {
+                Value::Float(n / into_float(m))
+            }
+            (Value::Hex(n), Value::Float(m))
+            | (Value::Dec(n), Value::Float(m)) => {
+                Value::Float(into_float(n) / m)
+            }
+            (Value::Hex(n), Value::Hex(m))
+            | (Value::Dec(n), Value::Hex(m))
+            | (Value::Hex(n), Value::Dec(m)) => {
                 if n % m == 0 {
                     Value::Hex(n / m)
                 } else {
@@ -303,7 +321,6 @@ impl Not for Value {
     }
 }
 
-
 impl Rem for Value {
     type Output = Result<Self, CalcError>;
 
@@ -323,7 +340,6 @@ impl Shl<Value> for Value {
     }
 }
 
-
 impl Shr<Value> for Value {
     type Output = Result<Self, CalcError>;
 
@@ -331,7 +347,6 @@ impl Shr<Value> for Value {
         self.intmap(that, ">>", |n, m| n >> m)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -342,16 +357,16 @@ mod tests {
         let cases = vec![
             (
                 Value::Float(d128!(3)) + Value::Dec(1),
-                Value::Float(d128!(4))
+                Value::Float(d128!(4)),
             ),
             (
                 Value::Hex(5) - Value::Float(d128!(4.5)),
-                Value::Float(d128!(0.5))
+                Value::Float(d128!(0.5)),
             ),
             (
-                Value::Hex(24) * Value::Dec(4) *
-                    Value::Float(d128!(1) / d128!(48)),
-                Value::Float(d128!(2))
+                Value::Hex(24) * Value::Dec(4)
+                    * Value::Float(d128!(1) / d128!(48)),
+                Value::Float(d128!(2)),
             ),
         ];
 
@@ -366,7 +381,7 @@ mod tests {
             (Value::Hex(3) * Value::Dec(-2), Value::Hex(-6)),
             (
                 (Value::Hex(0x100) >> Value::Hex(0x2)).unwrap(),
-                Value::Hex(0x40)
+                Value::Hex(0x40),
             ),
         ];
         for (output, expected) in cases {
@@ -378,9 +393,11 @@ mod tests {
     fn pow_overflow() {
         let lhs = Value::Dec(2);
         let rhs = Value::Dec(63);
-        let out = Err(CalcError::WouldOverflow(
-                        PartialComp::binary("**", lhs, rhs),
-                    ));
+        let out = Err(CalcError::WouldOverflow(PartialComp::binary(
+            "**",
+            lhs,
+            rhs,
+        )));
         assert_eq!(out, Value::Dec(2).pow(Value::Dec(63)));
     }
 
