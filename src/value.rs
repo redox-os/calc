@@ -1,54 +1,96 @@
+use num::{Zero, BigInt, BigUint, ToPrimitive};
 use decimal::d128;
 use error::{CalcError, PartialComp};
 use std::fmt;
 use std::ops::*;
 
+pub type Integral = BigInt;
+pub type UIntegral = BigUint;
+
 /// Represents a canonical value that can be calculated by this library
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     /// An integral value in decimal form. This is generally interoperable
-    /// with
-    /// the `Hex` constructor, but will be overriden by the `Hex`
+    /// with the `Hex` constructor, but will be overriden by the `Hex`
     /// constructor.
-    Dec(i64),
+    Dec(Integral),
     /// An integral value in hexadecimal form. This takes precedence over
-    /// the
-    /// `Dec` constructor.
-    Hex(i64),
+    /// the `Dec` constructor.
+    Hex(Integral),
     /// A 128-bit decimal floating point number
     Float(d128),
 }
 
-mod safe_ops {
+mod ops {
+    use std::iter::repeat;
+    use num::{Zero, Integer};
+    use super::{Value, UIntegral, Integral};
 
-    use super::{into_float, Value};
-
-    fn highest_bit(mut n: u64) -> u64 {
-        let mut bits = 0;
-        while n != 0 {
-            bits += 1;
-            n >>= 1;
+    macro_rules! bitwise_op {
+        ($name:ident, $fun:expr) => {
+            pub fn $name(n: Integral, m: Integral) -> Integral {
+                bitwise(n, m, $fun)
+            }
         }
-        return bits;
     }
 
-    pub fn int_pow(n: i64, m: i64, as_hex: bool) -> Option<super::Value> {
-        let bits = highest_bit(n as u64);
-        match bits.checked_mul(m as u64) {
-            Some(m) if m > 64 => None,
-            Some(_) => {
-                if m < 0 {
-                    Some(Value::Float(into_float(n).pow(into_float(m))))
-                } else {
-                    let res = n.pow(m as u32);
-                    Some(if as_hex {
-                        Value::Hex(res)
-                    } else {
-                        Value::Dec(res)
-                    })
-                }
+    fn equalize(left: &mut Vec<u8>, right: &mut Vec<u8>) {
+        if left.len() > right.len() {
+            for it in repeat(Zero::zero()).take(left.len() - right.len()) {
+                right.push(it);
             }
-            None => None,
+        } else if right.len() > left.len() {
+            for it in repeat(Zero::zero()).take(right.len() - left.len()) {
+                left.push(it);
+            }
+        }
+    }
+
+    pub fn bitwise<F: Fn(u8, u8) -> u8>(n: Integral, m: Integral, fun: F) -> Integral {
+        let mut n_bytes = n.to_signed_bytes_le();
+        let mut m_bytes = m.to_signed_bytes_le();
+        equalize(&mut n_bytes, &mut m_bytes);
+        let res: Vec<u8> = n_bytes
+            .iter()
+            .zip(m_bytes)
+            .map(|(n, m)| fun(*n, m))
+            .collect();
+        Integral::from_signed_bytes_le(&res)
+    }
+
+    bitwise_op!(and, |n, m| n & m);
+    bitwise_op!(or, |n, m| n | m);
+    bitwise_op!(xor, |n, m| n ^ m);
+
+    pub fn not(n: Integral) -> Integral {
+        let bytes = n.to_signed_bytes_le();
+        let res: Vec<u8> = bytes
+            .iter()
+            .map(|n| !n)
+            .collect();
+        Integral::from_signed_bytes_le(&res)
+    }
+
+    pub fn int_powu(n: Integral, m: UIntegral) -> Integral {
+        if m.is_zero() {
+            Zero::zero()
+        } else if m.is_even() {
+            int_powu(n * n, m / (2 as u8))
+        } else {
+            n * int_powu(n * n, (m - (1 as u8)) / (2 as u8))
+        }
+    }
+
+    pub fn int_pow(n: Integral, m: Integral, as_hex: bool) -> Option<Value> {
+        if m >= 0.into() {
+            let res = int_powu(n, m.to_biguint().unwrap());
+            if as_hex {
+                Some(Value::Hex(res))
+            } else {
+                Some(Value::Dec(res))
+            }
+        } else {
+            None
         }
     }
 
@@ -57,15 +99,22 @@ mod safe_ops {
 impl Value {
     pub fn is_zero(&self) -> bool {
         match *self {
-            Value::Dec(n) | Value::Hex(n) => n == 0,
+            Value::Dec(n) | Value::Hex(n) => n.is_zero(),
             Value::Float(f) => f == d128!(0),
         }
     }
 
-    pub fn as_float(&self) -> d128 {
+    pub fn as_float(&self) -> Result<d128, CalcError> {
         match *self {
-            Value::Dec(n) | Value::Hex(n) => n.into(),
-            Value::Float(n) => n,
+            Value::Dec(n) | Value::Hex(n) => {
+                match n.to_i64() {
+                    Some(n) => Ok(n.into()),
+                    None => Err(
+                        CalcError::WouldOverflow(PartialComp::unary("to float", self))
+                    )
+                }
+            }
+            Value::Float(n) => Ok(n),
         }
     }
 
@@ -78,7 +127,7 @@ impl Value {
         f: F,
     ) -> Result<Value, CalcError>
     where
-        F: Fn(i64, i64) -> i64,
+        F: Fn(Integral, Integral) -> Integral,
         T: ToString,
     {
         match (self, that) {
@@ -100,7 +149,7 @@ impl Value {
     /// point
     pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Value
     where
-        F: Fn(i64, i64) -> i64,
+        F: Fn(Integral, Integral) -> Integral,
         G: Fn(d128, d128) -> d128,
     {
         match (self, that) {
@@ -126,17 +175,25 @@ impl Value {
                 (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
                 (&Value::Float(n), &Value::Hex(m))
                 | (&Value::Float(n), &Value::Dec(m)) => {
-                    if m > i32::max_value() as i64 {
-                        return Err(CalcError::WouldOverflow(
-                            PartialComp::binary("**", self, that),
-                        ));
-                    } else if m < i32::min_value().into() {
-                        return Err(CalcError::WouldTruncate(
-                            PartialComp::binary("**", self, that),
-                        ));
-                    } else {
-                        Value::Float(n.pow(into_float(m)))
+                    match m.to_i64() {
+                        Some(m) => unimplemented!(),
+                        None => return Err(
+                            CalcError::WouldOverflow(
+                                PartialComp::binary("**", self, that)
+                            )
+                        )
                     }
+                    // if m > i32::max_value() as Integral {
+                    //     return Err(CalcError::WouldOverflow(
+                    //         PartialComp::binary("**", self, that),
+                    //     ));
+                    // } else if m < i32::min_value().into() {
+                    //     return Err(CalcError::WouldTruncate(
+                    //         PartialComp::binary("**", self, that),
+                    //     ));
+                    // } else {
+                    //     Value::Float(n.pow(into_float(m)))
+                    // }
                 }
                 (&Value::Hex(n), &Value::Float(m))
                 | (&Value::Dec(n), &Value::Float(m)) => {
@@ -145,7 +202,7 @@ impl Value {
                 (&Value::Hex(n), &Value::Hex(m))
                 | (&Value::Dec(n), &Value::Hex(m))
                 | (&Value::Hex(n), &Value::Dec(m)) => {
-                    match safe_ops::int_pow(n, m, true) {
+                    match ops::int_pow(n, m, true) {
                         Some(v) => v,
                         None => {
                             return Err(CalcError::WouldOverflow(
@@ -155,7 +212,7 @@ impl Value {
                     }
                 }
                 (&Value::Dec(n), &Value::Dec(m)) => {
-                    match safe_ops::int_pow(n, m, false) {
+                    match ops::int_pow(n, m, false) {
                         Some(v) => v,
                         None => {
                             return Err(CalcError::WouldOverflow(
@@ -168,13 +225,6 @@ impl Value {
         Ok(value)
     }
 
-    pub fn powu(self, i: u32) -> Self {
-        match self {
-            Value::Float(n) => Value::Float(n.pow(into_float(i))),
-            Value::Dec(n) => Value::Dec(n.pow(i)),
-            Value::Hex(n) => Value::Hex(n.pow(i)),
-        }
-    }
 }
 
 impl fmt::Display for Value {
@@ -187,8 +237,12 @@ impl fmt::Display for Value {
     }
 }
 
-pub fn into_float<INT: Into<d128>>(dec: INT) -> d128 {
-    dec.into()
+// pub fn into_float<INT: Into<d128>>(dec: INT) -> d128 {
+//     dec.into()
+// }
+
+pub fn into_float<T>(dec: T) -> d128 {
+    unimplemented!()
 }
 
 /// An intermediate result that can be computed by this library.
@@ -253,14 +307,14 @@ impl Div for Value {
             (Value::Hex(n), Value::Hex(m))
             | (Value::Dec(n), Value::Hex(m))
             | (Value::Hex(n), Value::Dec(m)) => {
-                if n % m == 0 {
+                if (n % m).is_zero() {
                     Value::Hex(n / m)
                 } else {
                     Value::Float(into_float(n) / into_float(m))
                 }
             }
             (Value::Dec(n), Value::Dec(m)) => {
-                if n % m == 0 {
+                if (n % m).is_zero() {
                     Value::Dec(n / m)
                 } else {
                     Value::Float(into_float(n) / into_float(m))
@@ -275,7 +329,7 @@ impl BitAnd for Value {
     type Output = Result<Self, CalcError>;
 
     fn bitand(self, that: Value) -> Self::Output {
-        self.intmap(that, "&", |n, m| n & m)
+        self.intmap(that, "&", |n, m| ops::and(n, m))
     }
 }
 
@@ -283,7 +337,7 @@ impl BitOr for Value {
     type Output = Result<Self, CalcError>;
 
     fn bitor(self, that: Value) -> Self::Output {
-        self.intmap(that, "|", |n, m| n | m)
+        self.intmap(that, "|", |n, m| ops::or(n, m))
     }
 }
 
@@ -291,7 +345,7 @@ impl BitXor for Value {
     type Output = Result<Self, CalcError>;
 
     fn bitxor(self, that: Value) -> Self::Output {
-        self.intmap(that, "^", |n, m| n ^ m)
+        self.intmap(that, "^", |n, m| ops::xor(n, m))
     }
 }
 
@@ -312,8 +366,8 @@ impl Not for Value {
 
     fn not(self) -> Self::Output {
         match self {
-            Value::Hex(n) => Ok(Value::Hex(!n)),
-            Value::Dec(n) => Ok(Value::Dec(!n)),
+            Value::Hex(n) => Ok(Value::Hex(ops::not(n))),
+            Value::Dec(n) => Ok(Value::Dec(ops::not(n))),
             Value::Float(f) => {
                 return Err(CalcError::BadTypes(PartialComp::unary("~", f)))
             }
@@ -336,7 +390,7 @@ impl Shl<Value> for Value {
     type Output = Result<Self, CalcError>;
 
     fn shl(self, that: Value) -> Self::Output {
-        self.intmap(that, "<<", |n, m| n << m)
+        self.intmap(that, "<<", |n, m| n * ops::int_powu(m, (2 as u8).into()))
     }
 }
 
@@ -344,7 +398,7 @@ impl Shr<Value> for Value {
     type Output = Result<Self, CalcError>;
 
     fn shr(self, that: Value) -> Self::Output {
-        self.intmap(that, ">>", |n, m| n >> m)
+        self.intmap(that, "<<", |n, m| n / ops::int_powu(m, (2 as u8).into()))
     }
 }
 

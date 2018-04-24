@@ -1,10 +1,10 @@
 use decimal::d128;
 use error::CalcError;
 use error::CalcError::*;
+use num::{Num, Zero};
 use std::fmt;
-use std::i64;
 use std::iter::Peekable;
-use value::Value;
+use value::{Integral, Value};
 
 /// Tokens used for parsing an arithmetic expression
 #[derive(Debug, Clone, PartialEq)]
@@ -398,11 +398,11 @@ where
                 Some(&'x') | Some(&'X') => {
                     input.next();
                     let digits = digits(input, 16);
-                    let num = i64::from_str_radix(&digits, 16)?;
+                    let num = Integral::from_str_radix(&digits, 16)?;
                     return Ok(Value::Hex(num));
                 }
                 Some(&_) => (),
-                None => return Ok(Value::Dec(0)),
+                None => return Ok(Value::Dec(Zero::zero())),
             }
         }
         Some(_) => (),

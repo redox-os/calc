@@ -2,6 +2,8 @@
 
 #[macro_use]
 extern crate decimal;
+#[macro_use]
+extern crate failure;
 extern crate num;
 #[cfg(test)]
 extern crate test;

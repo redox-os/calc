@@ -160,11 +160,11 @@ where
                 g1.tokens += f.tokens + 1;
             }
             Token::Square => {
-                g1.value = g1.value.powu(2);
+                g1.value = g1.value * g1.value;
                 g1.tokens += 1;
             }
             Token::Cube => {
-                g1.value = g1.value.powu(3);
+                g1.value = g1.value * g1.value * g1.value;
                 g1.tokens += 1;
             }
             Token::Number(ref n) => {
@@ -268,7 +268,7 @@ impl Environment for DefaultEnvironment {
             "tau" => Ok(Value::Float(
                 d128!(3.1415926535897932384626433832795028) * into_float(2),
             )),
-            "log" => Ok(Value::Float(args[0].as_float().log10())),
+            "log" => Ok(Value::Float(args[0].as_float()?.log10())),
             // "sin" => Ok(Value::Float(args[0].as_float().sin())),
             // "cos" => Ok(Value::Float(args[0].as_float().cos())),
             // "tan" => Ok(Value::Float(args[0].as_float().tan())),
