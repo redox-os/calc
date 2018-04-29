@@ -88,19 +88,19 @@ mod tests {
     #[test]
     fn basics() {
         let cases = vec![
-            ("  1 +   1", Value::Dec(2)),
-            (" 4 * 7 - 14", Value::Dec(14)),
-            (" 2 << 16 ", Value::Dec(131072)),
+            ("  1 +   1", Value::dec(2)),
+            (" 4 * 7 - 14", Value::dec(14)),
+            (" 2 << 16 ", Value::dec(131072)),
             (
                 " ((4 * 18) % 17) / 3",
                 Value::Float(d128!(4.0) / d128!(3.0)),
             ),
-            ("2²³²", Value::Dec(4096)),
-            ("4 ^ 3 ^ 2 ^ 3 ^ 4 ^ 2", Value::Dec(0)),
-            ("3 << (4 >> 2)", Value::Dec(6)),
-            ("~0", Value::Dec(-1)),
+            ("2²³²", Value::dec(4096)),
+            ("4 ^ 3 ^ 2 ^ 3 ^ 4 ^ 2", Value::dec(0)),
+            ("3 << (4 >> 2)", Value::dec(6)),
+            ("~0", Value::dec(-1)),
             // ("cos pi + sin (tau * (3 / 4))", Value::Float(d128!(-2.0))),
-            ("~~5", Value::Dec(5)),
+            ("~~5", Value::dec(5)),
         ];
         for (input, expected) in cases {
             assert_eq!(eval(input), Ok(expected));
@@ -110,20 +110,20 @@ mod tests {
     #[test]
     fn polish() {
         let cases = vec![
-            (" + 1 1", Value::Dec(2)),
-            (" - * 4 7 14", Value::Dec(14)),
-            (" << 2 16", Value::Dec(131072)),
+            (" + 1 1", Value::dec(2)),
+            (" - * 4 7 14", Value::dec(14)),
+            (" << 2 16", Value::dec(131072)),
             (
                 " / % * 4 18 17 3",
                 Value::Float(d128!(4.0) / d128!(3.0)),
             ),
-            ("* + 1 3 5", Value::Dec(20)),
+            ("* + 1 3 5", Value::dec(20)),
             (
                 "+ / * 5 3 2 * + 1 3 5",
                 Value::Float(d128!(27.5)),
             ),
-            ("^ ^ ^ ^ ^ 4 3 2 3 4 2", Value::Dec(0)),
-            ("<< 3 >> 4 2", Value::Dec(6)),
+            ("^ ^ ^ ^ ^ 4 3 2 3 4 2", Value::dec(0)),
+            ("<< 3 >> 4 2", Value::dec(6)),
         ];
         for (input, expected) in cases {
             assert_eq!(eval_polish(input), Ok(expected));

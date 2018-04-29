@@ -156,15 +156,15 @@ where
         match token_list[index] {
             Token::Exponent => {
                 let f = f_expr(&token_list[index + 1..], env)?;
-                g1.value = g1.value.pow(f.value)?;
+                g1.value = g1.value.pow(&f.value)?;
                 g1.tokens += f.tokens + 1;
             }
             Token::Square => {
-                g1.value = g1.value * g1.value;
+                g1.value = g1.value.clone() * g1.value;
                 g1.tokens += 1;
             }
             Token::Cube => {
-                g1.value = g1.value * g1.value * g1.value;
+                g1.value = g1.value.clone() * g1.value.clone() * g1.value;
                 g1.tokens += 1;
             }
             Token::Number(ref n) => {
@@ -293,11 +293,11 @@ mod tests {
     fn unary_minus() {
         let expr = [
             Token::Minus,
-            Token::Number(Value::Dec(1)),
+            Token::Number(Value::dec(1)),
             Token::Plus,
-            Token::Number(Value::Dec(1)),
+            Token::Number(Value::dec(1)),
         ];
-        let expected = Value::Dec(0);
+        let expected = Value::dec(0);
         let mut env = DefaultEnvironment;
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
