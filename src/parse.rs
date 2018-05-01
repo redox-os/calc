@@ -293,11 +293,11 @@ mod tests {
     fn unary_minus() {
         let expr = [
             Token::Minus,
-            Token::Number(Value::Dec(1)),
+            Token::Number(Value::dec(1)),
             Token::Plus,
-            Token::Number(Value::Dec(1)),
+            Token::Number(Value::dec(1)),
         ];
-        let expected = Value::Dec(0);
+        let expected = Value::dec(0);
         let mut env = DefaultEnvironment;
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }

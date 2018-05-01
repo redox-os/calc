@@ -399,10 +399,10 @@ where
                     input.next();
                     let digits = digits(input, 16);
                     let num = i64::from_str_radix(&digits, 16)?;
-                    return Ok(Value::Hex(num));
+                    return Ok(Value::hex(num));
                 }
                 Some(&_) => (),
-                None => return Ok(Value::Dec(0)),
+                None => return Ok(Value::dec(0)),
             }
         }
         Some(_) => (),
@@ -418,7 +418,8 @@ where
             .map_err(|_| CalcError::InvalidNumber("invalid float".into()))?;
         Ok(Value::Float(num))
     } else {
-        Ok(Value::Dec(whole.parse()?))
+        let res: i64 = whole.parse()?;
+        Ok(Value::dec(res))
     }
 }
 
@@ -455,17 +456,17 @@ mod tests {
         let line = "(3 + 7) >> 10 * (7 % 2)";
         let expected = vec![
             Token::OpenParen,
-            Token::Number(Value::Dec(3)),
+            Token::Number(Value::dec(3)),
             Token::Plus,
-            Token::Number(Value::Dec(7)),
+            Token::Number(Value::dec(7)),
             Token::CloseParen,
             Token::BitWiseRShift,
-            Token::Number(Value::Dec(10)),
+            Token::Number(Value::dec(10)),
             Token::Multiply,
             Token::OpenParen,
-            Token::Number(Value::Dec(7)),
+            Token::Number(Value::dec(7)),
             Token::Modulo,
-            Token::Number(Value::Dec(2)),
+            Token::Number(Value::dec(2)),
             Token::CloseParen,
         ];
         assert_eq!(tokenize(line), Ok(expected));
@@ -476,10 +477,10 @@ mod tests {
         let line = "log 4 / log 2";
         let expected = vec![
             Token::Atom("log".into()),
-            Token::Number(Value::Dec(4)),
+            Token::Number(Value::dec(4)),
             Token::Divide,
             Token::Atom("log".into()),
-            Token::Number(Value::Dec(2)),
+            Token::Number(Value::dec(2)),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
@@ -488,9 +489,9 @@ mod tests {
     fn hexadecimals() {
         let line = "0xDEADBEEF | 0xC0FFEE";
         let expected = vec![
-            Token::Number(Value::Hex(0xDEADBEEF)),
+            Token::Number(Value::hex(0xDEADBEEF as i64)),
             Token::BitWiseOr,
-            Token::Number(Value::Hex(0xC0FFEE)),
+            Token::Number(Value::hex(0xC0FFEE)),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
