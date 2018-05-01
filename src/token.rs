@@ -399,10 +399,10 @@ where
                     input.next();
                     let digits = digits(input, 16);
                     let num = Integral::from_str_radix(&digits, 16)?;
-                    return Ok(Value::Hex(num));
+                    return Ok(Value::hex(num));
                 }
                 Some(&_) => (),
-                None => return Ok(Value::Dec(Zero::zero())),
+                None => return Ok(Value::dec(0)),
             }
         }
         Some(_) => (),
@@ -418,7 +418,8 @@ where
             .map_err(|_| CalcError::InvalidNumber("invalid float".into()))?;
         Ok(Value::Float(num))
     } else {
-        Ok(Value::Dec(whole.parse()?))
+        let res: Integral = whole.parse()?;
+        Ok(Value::dec(res))
     }
 }
 
@@ -488,9 +489,7 @@ mod tests {
     fn hexadecimals() {
         let line = "0xDEADBEEF | 0xC0FFEE";
         let expected = vec![
-            // This test actually didn't pass before arbitrary precision ints (really): both the
-            // integer literal and the line inside the test overflowed
-            Token::Number(Value::hex(Integral::from_str_radix("DEADBEEF", 16).unwrap())),
+            Token::Number(Value::hex(0xDEADBEEF as i64)),
             Token::BitWiseOr,
             Token::Number(Value::hex(0xC0FFEE)),
         ];

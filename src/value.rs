@@ -5,18 +5,49 @@ use std::fmt;
 use std::ops::*;
 
 pub type Integral = BigInt;
-pub type UIntegral = BigUint;
+type UIntegral = BigUint;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum IntegralFmt {
+    Dec,
+    Hex,
+}
+
+impl Add for IntegralFmt {
+    type Output = IntegralFmt;
+    fn add(self, that: IntegralFmt) -> Self::Output {
+        match (self, that) {
+            (IntegralFmt::Hex, _) | (_, IntegralFmt::Hex) => IntegralFmt::Hex,
+            _ => IntegralFmt::Dec,
+        }
+    }
+}
+
+impl<'a> Add<&'a IntegralFmt> for IntegralFmt {
+    type Output = IntegralFmt;
+    fn add(self, that: &IntegralFmt) -> Self::Output {
+        match (self, *that) {
+            (IntegralFmt::Hex, _) | (_, IntegralFmt::Hex) => IntegralFmt::Hex,
+            _ => IntegralFmt::Dec,
+        }
+    }
+}
+
+impl IntegralFmt {
+    pub fn merge(&self, that: &IntegralFmt) -> Self {
+        match (*self, *that) {
+            (IntegralFmt::Hex, _) | (_, IntegralFmt::Hex) => IntegralFmt::Hex,
+            _ => IntegralFmt::Dec,
+        }
+    }
+}
 
 /// Represents a canonical value that can be calculated by this library
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
-    /// An integral value in decimal form. This is generally interoperable
-    /// with the `Hex` constructor, but will be overriden by the `Hex`
-    /// constructor.
-    Dec(Integral),
-    /// An integral value in hexadecimal form. This takes precedence over
-    /// the `Dec` constructor.
-    Hex(Integral),
+    /// An integral value. The format of this value (hexadecimal versus
+    /// decimal) is determined by the tag.
+    Integral(Integral, IntegralFmt),
     /// A 128-bit decimal floating point number
     Float(d128),
 }
@@ -99,26 +130,25 @@ pub mod ops {
 }
 
 impl Value {
-
-    pub fn dec<T: Into<Integral>>(n: T) -> Self {
-        Value::Dec(n.into())
+    pub fn hex<T: Into<Integral>>(n: T) -> Self {
+        Value::Integral(n.into(), IntegralFmt::Hex)
     }
 
-    pub fn hex<T: Into<Integral>>(n: T) -> Self {
-        Value::Hex(n.into())
+    pub fn dec<T: Into<Integral>>(n: T) -> Self {
+        Value::Integral(n.into(), IntegralFmt::Dec)
     }
 
     pub fn is_zero(&self) -> bool {
-        match self {
-            Value::Dec(n) | Value::Hex(n) => n.is_zero(),
-            Value::Float(f) => *f == d128!(0),
+        match *self {
+            Value::Integral(n, _) => n.is_zero(),
+            Value::Float(f) => f == d128!(0),
         }
     }
 
-    pub fn as_float(&self) -> Result<d128, CalcError> {
-        match self {
-            Value::Dec(n) | Value::Hex(n) => ops::to_float(&n),
-            Value::Float(n) => Ok(*n),
+    pub fn as_float(&self) -> d128 {
+        match *self {
+            Value::Integral(n, _) => unimplemented!(),
+            Value::Float(n) => n,
         }
     }
 
@@ -135,15 +165,12 @@ impl Value {
         T: ToString,
     {
         match (*self, *that) {
-            (Value::Hex(n), Value::Hex(m))
-            | (Value::Hex(n), Value::Dec(m))
-            | (Value::Dec(n), Value::Hex(m)) => Ok(Value::Hex(f(n, m)?)),
-            (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m)?)),
+            (Value::Integral(n, t1), Value::Integral(m, t2)) => {
+                Ok(Value::Integral(f(n, m)?, t1 + t2))
+            },
             (v1 @ Value::Float(_), v2 @ _) | (v1 @ _, v2 @ Value::Float(_)) => {
                 Err(CalcError::BadTypes(PartialComp::binary(
-                    op,
-                    v1,
-                    v2,
+                    op, v1, v2,
                 )))
             }
         }
@@ -157,58 +184,41 @@ impl Value {
         F: Fn(Integral, Integral) -> Integral,
         G: Fn(d128, d128) -> d128,
     {
-        match (self, that) {
-            (Value::Float(n), Value::Float(m)) => Ok(Value::Float(g(n, m))),
-            (Value::Float(n), Value::Hex(m))
-            | (Value::Float(n), Value::Dec(m)) => {
-                ops::to_float(&m).map(|m| Value::Float(g(n, m)))
+        let ret = match (self, that) {
+            (Value::Float(n), Value::Float(m)) => Value::Float(g(n, m)),
+            (Value::Float(n), Value::Integral(m, _)) => {
+                Value::Float(g(n, ops::to_float(&m)?))
             }
-            (Value::Hex(n), Value::Float(m))
-            | (Value::Dec(n), Value::Float(m)) => {
-                ops::to_float(&n).map(|n| Value::Float(g(n, m)))
+            (Value::Integral(n, _), Value::Float(m)) => {
+                Value::Float(g(ops::to_float(&n)?, m))
             }
-            (Value::Hex(n), Value::Hex(m))
-            | (Value::Dec(n), Value::Hex(m))
-            | (Value::Hex(n), Value::Dec(m)) => Ok(Value::Hex(f(n, m))),
-            (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m))),
-        }
+            (Value::Integral(n, t1), Value::Integral(m, t2)) => {
+                Value::Integral(f(n, m), t1 + t2)
+            }
+        };
+        Ok(ret)
     }
 
-    pub fn pow(&self, that: &Value) -> Result<Self, CalcError> {
-        let value =
-            match (self, that) {
-                (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
-                (&Value::Float(ref n), &Value::Hex(ref m))
-                | (&Value::Float(ref n), &Value::Dec(ref m)) => {
-                    Value::Float(n.pow(ops::to_float(m)?))
-                }
-                (&Value::Hex(ref n), &Value::Float(ref m))
-                | (&Value::Dec(ref n), &Value::Float(ref m)) => {
-                    Value::Float(ops::to_float(n)?.pow(m))
-                }
-                (&Value::Hex(ref n), &Value::Hex(ref m))
-                | (&Value::Dec(ref n), &Value::Hex(ref m))
-                | (&Value::Hex(ref n), &Value::Dec(ref m)) => {
-                    match ops::int_pow(n, m) {
-                        Some(v) => Value::hex(v),
-                        None => {
-                            return Err(CalcError::WouldOverflow(
-                                PartialComp::binary("**", self, that),
-                            ))
-                        }
+    pub fn pow(self, that: Value) -> Result<Self, CalcError> {
+        let value = match (&self, &that) {
+            (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
+            (&Value::Float(n), &Value::Integral(m, _)) => {
+                Value::Float(n.pow(ops::to_float(&m)?))
+            }
+            (&Value::Integral(n, _), &Value::Float(m)) => {
+                Value::Float(ops::to_float(&n)?.pow(m))
+            }
+            (&Value::Integral(n, t1), &Value::Integral(m, t2)) => {
+                match ops::int_pow(&n, &m) {
+                    Some(v) => Value::Integral(v, t1 + t2),
+                    None => {
+                        return Err(CalcError::WouldOverflow(
+                            PartialComp::binary("**", self, that),
+                        ))
                     }
                 }
-                (&Value::Dec(ref n), &Value::Dec(ref m)) => {
-                    match ops::int_pow(n, m) {
-                        Some(v) => Value::dec(v),
-                        None => {
-                            return Err(CalcError::WouldOverflow(
-                                PartialComp::binary("**", self, that),
-                            ))
-                        }
-                    }
-                }
-            };
+            }
+        };
         Ok(value)
     }
 
@@ -216,9 +226,9 @@ impl Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Value::Dec(n) => write!(f, "{}", n),
-            Value::Hex(n) => write!(f, "0x{:X}", n),
+        match *self {
+            Value::Integral(n, IntegralFmt::Dec) => write!(f, "{}", n),
+            Value::Integral(n, IntegralFmt::Hex) => write!(f, "0x{:X}", n),
             Value::Float(n) => write!(f, "{}", n),
         }
     }
@@ -275,26 +285,17 @@ impl Div for Value {
         }
         let value = match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(n / m),
-            (Value::Float(n), Value::Hex(m))
-            | (Value::Float(n), Value::Dec(m)) =>
-                Value::Float(n / ops::to_float(&m)?),
-            (Value::Hex(n), Value::Float(m))
-            | (Value::Dec(n), Value::Float(m)) =>
-                Value::Float(ops::to_float(&n)? / m),
-            (Value::Hex(ref n), Value::Hex(ref m))
-            | (Value::Dec(ref n), Value::Hex(ref m))
-            | (Value::Hex(ref n), Value::Dec(ref m)) => {
-                if (n % m).is_zero() {
-                    Value::Hex(n / m)
-                } else {
-                    Value::Float(ops::to_float(n)? / ops::to_float(m)?)
-                }
+            (Value::Float(n), Value::Integral(m, _)) => {
+                Value::Float(n / ops::to_float(&m)?)
             }
-            (Value::Dec(ref n), Value::Dec(ref m)) => {
+            (Value::Integral(n, _), Value::Float(m)) => {
+                Value::Float(ops::to_float(&n)? / m)
+            }
+            (Value::Integral(n, t1), Value::Integral(m, t2)) => {
                 if (n % m).is_zero() {
-                    Value::Dec(n / m)
+                    Value::Integral(n / m, t1 + t2)
                 } else {
-                    Value::Float(ops::to_float(n)? / ops::to_float(m)?)
+                    Value::Float(ops::to_float(&n)? / ops::to_float(&m)?)
                 }
             }
         };
@@ -331,8 +332,7 @@ impl Neg for Value {
 
     fn neg(self) -> Self::Output {
         match self {
-            Value::Hex(n) => Value::Hex(-n),
-            Value::Dec(n) => Value::Dec(-n),
+            Value::Integral(n, t) => Value::Integral(-n, t),
             Value::Float(f) => Value::Float(-f),
         }
     }
@@ -343,8 +343,7 @@ impl Not for Value {
 
     fn not(self) -> Self::Output {
         match self {
-            Value::Hex(n) => Ok(Value::Hex(ops::not(n))),
-            Value::Dec(n) => Ok(Value::Dec(ops::not(n))),
+            Value::Integral(n, t) => Ok(Value::Integral(ops::not(n), t)),
             Value::Float(f) => {
                 return Err(CalcError::BadTypes(PartialComp::unary("~", f)))
             }
