@@ -268,7 +268,7 @@ impl Environment for DefaultEnvironment {
             "tau" => Ok(Value::Float(
                 d128!(3.1415926535897932384626433832795028) * d128!(2.0)
             )),
-            // "log" => Ok(Value::Float(args[0].as_float()?.log10())),
+            "log" => Ok(Value::Float(args[0].as_float()?.log10())),
             // "sin" => Ok(Value::Float(args[0].as_float().sin())),
             // "cos" => Ok(Value::Float(args[0].as_float().cos())),
             // "tan" => Ok(Value::Float(args[0].as_float().tan())),

@@ -30,7 +30,7 @@ impl PartialComp {
         }
     }
 
-    pub fn binary<T, U, V>(op: T, lhs: U, rhs: V) -> Self
+    pub fn binary<T, U, V>(op: T, lhs: &U, rhs: &V) -> Self
     where
         T: ToString,
         U: ToString,

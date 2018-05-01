@@ -1,7 +1,7 @@
 use decimal::d128;
 use error::CalcError;
 use error::CalcError::*;
-use num::{Num, Zero};
+use num::Num;
 use std::fmt;
 use std::iter::Peekable;
 use value::{Integral, Value};

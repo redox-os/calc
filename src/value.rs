@@ -60,7 +60,7 @@ pub mod ops {
 
     macro_rules! bitwise_op {
         ($name:ident, $fun:expr) => {
-            pub fn $name(n: Integral, m: Integral) -> Integral {
+            pub fn $name(n: &Integral, m: &Integral) -> Integral {
                 bitwise(n, m, $fun)
             }
         }
@@ -78,7 +78,7 @@ pub mod ops {
         }
     }
 
-    pub fn bitwise<F: Fn(u8, u8) -> u8>(n: Integral, m: Integral, fun: F) -> Integral {
+    pub fn bitwise<F: Fn(u8, u8) -> u8>(n: &Integral, m: &Integral, fun: F) -> Integral {
         let mut n_bytes = n.to_signed_bytes_le();
         let mut m_bytes = m.to_signed_bytes_le();
         equalize(&mut n_bytes, &mut m_bytes);
@@ -139,16 +139,16 @@ impl Value {
     }
 
     pub fn is_zero(&self) -> bool {
-        match *self {
-            Value::Integral(n, _) => n.is_zero(),
-            Value::Float(f) => f == d128!(0),
+        match self {
+            Value::Integral(ref n, _) => n.is_zero(),
+            Value::Float(ref f) => *f == d128!(0),
         }
     }
 
-    pub fn as_float(&self) -> d128 {
-        match *self {
-            Value::Integral(n, _) => unimplemented!(),
-            Value::Float(n) => n,
+    pub fn as_float(&self) -> Result<d128, CalcError> {
+        match self {
+            Value::Integral(ref n, _) => ops::to_float(n),
+            Value::Float(ref n) => Ok(*n),
         }
     }
 
@@ -161,12 +161,12 @@ impl Value {
         f: F,
     ) -> Result<Value, CalcError>
     where
-        F: Fn(Integral, Integral) -> Result<Integral, CalcError>,
+        F: Fn(&Integral, &Integral) -> Result<Integral, CalcError>,
         T: ToString,
     {
-        match (*self, *that) {
+        match (self, that) {
             (Value::Integral(n, t1), Value::Integral(m, t2)) => {
-                Ok(Value::Integral(f(n, m)?, t1 + t2))
+                Ok(Value::Integral(f(n, m)?, *t1 + t2))
             },
             (v1 @ Value::Float(_), v2 @ _) | (v1 @ _, v2 @ Value::Float(_)) => {
                 Err(CalcError::BadTypes(PartialComp::binary(
@@ -202,18 +202,18 @@ impl Value {
     pub fn pow(self, that: Value) -> Result<Self, CalcError> {
         let value = match (&self, &that) {
             (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
-            (&Value::Float(n), &Value::Integral(m, _)) => {
-                Value::Float(n.pow(ops::to_float(&m)?))
+            (&Value::Float(n), &Value::Integral(ref m, _)) => {
+                Value::Float(n.pow(ops::to_float(m)?))
             }
-            (&Value::Integral(n, _), &Value::Float(m)) => {
-                Value::Float(ops::to_float(&n)?.pow(m))
+            (&Value::Integral(ref n, _), &Value::Float(m)) => {
+                Value::Float(ops::to_float(n)?.pow(m))
             }
-            (&Value::Integral(n, t1), &Value::Integral(m, t2)) => {
+            (&Value::Integral(ref n, t1), &Value::Integral(ref m, t2)) => {
                 match ops::int_pow(&n, &m) {
                     Some(v) => Value::Integral(v, t1 + t2),
                     None => {
                         return Err(CalcError::WouldOverflow(
-                            PartialComp::binary("**", self, that),
+                            PartialComp::binary("**", &self, &that),
                         ))
                     }
                 }
@@ -226,10 +226,10 @@ impl Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Value::Integral(n, IntegralFmt::Dec) => write!(f, "{}", n),
-            Value::Integral(n, IntegralFmt::Hex) => write!(f, "0x{:X}", n),
-            Value::Float(n) => write!(f, "{}", n),
+        match self {
+            Value::Integral(ref n, IntegralFmt::Dec) => write!(f, "{}", n),
+            Value::Integral(ref n, IntegralFmt::Hex) => write!(f, "0x{:X}", n),
+            Value::Float(ref n) => write!(f, "{}", n),
         }
     }
 }
@@ -291,7 +291,7 @@ impl Div for Value {
             (Value::Integral(n, _), Value::Float(m)) => {
                 Value::Float(ops::to_float(&n)? / m)
             }
-            (Value::Integral(n, t1), Value::Integral(m, t2)) => {
+            (Value::Integral(ref n, t1), Value::Integral(ref m, t2)) => {
                 if (n % m).is_zero() {
                     Value::Integral(n / m, t1 + t2)
                 } else {
@@ -378,7 +378,7 @@ impl Shl<Value> for Value {
                         n << (m as usize)
                      }
                  })
-                 .ok_or(CalcError::WouldOverflow(PartialComp::binary("<<", self, that)))
+                 .ok_or(CalcError::WouldOverflow(PartialComp::binary("<<", &self, &that)))
             }
         )
     }
@@ -400,7 +400,9 @@ impl Shr<Value> for Value {
                         n >> (m as usize)
                      }
                  })
-                 .ok_or(CalcError::WouldOverflow(PartialComp::binary(">>", self, that)))
+                 .ok_or(
+                     CalcError::WouldOverflow(PartialComp::binary(">>", &self, &that))
+                 )
             }
         )
     }
