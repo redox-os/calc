@@ -6,6 +6,7 @@ use num::bigint::ParseBigIntError;
 /// error message.
 #[derive(Debug, PartialEq)]
 pub enum PartialComp {
+    ToFloat(String),
     Unary {
         op: String,
         arg: String,
@@ -46,6 +47,9 @@ impl PartialComp {
 impl fmt::Display for PartialComp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            PartialComp::ToFloat(ref arg) => {
+                write!(f, "{} as float", arg)
+            }
             PartialComp::Unary {
                 ref op,
                 ref arg,

@@ -22,9 +22,10 @@ pub enum Value {
 }
 
 pub mod ops {
+    use decimal::d128;
     use std::iter::repeat;
-    use num::{Zero, Integer};
-    use super::{Value, UIntegral, Integral};
+    use num::{Zero, Integer, ToPrimitive};
+    use super::{UIntegral, Integral, CalcError, PartialComp};
 
     macro_rules! bitwise_op {
         ($name:ident, $fun:expr) => {
@@ -82,11 +83,17 @@ pub mod ops {
     }
 
     pub fn int_pow(n: &Integral, m: &Integral) -> Option<Integral> {
-        if *m >= 0.into() {
+        if *m >= Zero::zero() {
             Some(int_powu(n, &m.to_biguint().unwrap()))
         } else {
-            None
+            unimplemented!()
         }
+    }
+
+    pub fn to_float(n: &Integral) -> Result<d128, CalcError> {
+        n.to_i64()
+         .map(Into::into)
+         .ok_or(CalcError::WouldTruncate(PartialComp::ToFloat(n.to_string())))
     }
 
 }
@@ -110,14 +117,7 @@ impl Value {
 
     pub fn as_float(&self) -> Result<d128, CalcError> {
         match self {
-            Value::Dec(n) | Value::Hex(n) => {
-                match n.to_i64() {
-                    Some(n) => Ok(n.into()),
-                    None => Err(
-                        CalcError::WouldOverflow(PartialComp::unary("to float", self))
-                    )
-                }
-            }
+            Value::Dec(n) | Value::Hex(n) => ops::to_float(&n),
             Value::Float(n) => Ok(*n),
         }
     }
@@ -125,20 +125,20 @@ impl Value {
     /// Represents a computation that can only operate on, and return,
     /// integer values
     pub fn intmap<F, T>(
-        self,
-        that: Value,
+        &self,
+        that: &Value,
         op: T,
         f: F,
     ) -> Result<Value, CalcError>
     where
-        F: Fn(Integral, Integral) -> Integral,
+        F: Fn(Integral, Integral) -> Result<Integral, CalcError>,
         T: ToString,
     {
-        match (self, that) {
+        match (*self, *that) {
             (Value::Hex(n), Value::Hex(m))
             | (Value::Hex(n), Value::Dec(m))
-            | (Value::Dec(n), Value::Hex(m)) => Ok(Value::Hex(f(n, m))),
-            (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m))),
+            | (Value::Dec(n), Value::Hex(m)) => Ok(Value::Hex(f(n, m)?)),
+            (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m)?)),
             (v1 @ Value::Float(_), v2 @ _) | (v1 @ _, v2 @ Value::Float(_)) => {
                 Err(CalcError::BadTypes(PartialComp::binary(
                     op,
@@ -150,26 +150,27 @@ impl Value {
     }
 
     /// Represents a computation that will cast integer types to floating
-    /// point
-    pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Value
+    /// point. There might be a possible truncation when we convert a BigInt into a floating point,
+    /// so we have to be careful here.
+    pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Result<Value, CalcError>
     where
         F: Fn(Integral, Integral) -> Integral,
         G: Fn(d128, d128) -> d128,
     {
         match (self, that) {
-            (Value::Float(n), Value::Float(m)) => Value::Float(g(n, m)),
+            (Value::Float(n), Value::Float(m)) => Ok(Value::Float(g(n, m))),
             (Value::Float(n), Value::Hex(m))
             | (Value::Float(n), Value::Dec(m)) => {
-                Value::Float(g(n, into_float(m)))
+                ops::to_float(&m).map(|m| Value::Float(g(n, m)))
             }
             (Value::Hex(n), Value::Float(m))
             | (Value::Dec(n), Value::Float(m)) => {
-                Value::Float(g(into_float(n), m))
+                ops::to_float(&n).map(|n| Value::Float(g(n, m)))
             }
             (Value::Hex(n), Value::Hex(m))
             | (Value::Dec(n), Value::Hex(m))
-            | (Value::Hex(n), Value::Dec(m)) => Value::Hex(f(n, m)),
-            (Value::Dec(n), Value::Dec(m)) => Value::Dec(f(n, m)),
+            | (Value::Hex(n), Value::Dec(m)) => Ok(Value::Hex(f(n, m))),
+            (Value::Dec(n), Value::Dec(m)) => Ok(Value::Dec(f(n, m))),
         }
     }
 
@@ -179,18 +180,11 @@ impl Value {
                 (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
                 (&Value::Float(ref n), &Value::Hex(ref m))
                 | (&Value::Float(ref n), &Value::Dec(ref m)) => {
-                    match m.to_i64() {
-                        Some(_m) => unimplemented!(),
-                        None => return Err(
-                            CalcError::WouldTruncate(
-                                PartialComp::binary("**", self, that)
-                            )
-                        )
-                    }
+                    Value::Float(n.pow(ops::to_float(m)?))
                 }
                 (&Value::Hex(ref n), &Value::Float(ref m))
                 | (&Value::Dec(ref n), &Value::Float(ref m)) => {
-                    Value::Float(into_float(n).pow(m))
+                    Value::Float(ops::to_float(n)?.pow(m))
                 }
                 (&Value::Hex(ref n), &Value::Hex(ref m))
                 | (&Value::Dec(ref n), &Value::Hex(ref m))
@@ -230,14 +224,6 @@ impl fmt::Display for Value {
     }
 }
 
-// pub fn into_float<INT: Into<d128>>(dec: INT) -> d128 {
-//     dec.into()
-// }
-
-pub fn into_float<T>(dec: T) -> d128 {
-    unimplemented!()
-}
-
 /// An intermediate result that can be computed by this library.
 /// - `value` represents the current computed data
 /// - `tokens` represents the number of tokens that have been consumed
@@ -257,7 +243,7 @@ impl IR {
 }
 
 impl Add for Value {
-    type Output = Self;
+    type Output = Result<Self, CalcError>;
 
     fn add(self, that: Value) -> Self::Output {
         self.castmap(that, |x, y| x + y, |x, y| x + y)
@@ -265,7 +251,7 @@ impl Add for Value {
 }
 
 impl Sub for Value {
-    type Output = Self;
+    type Output = Result<Self, CalcError>;
 
     fn sub(self, that: Value) -> Self::Output {
         self.castmap(that, |x, y| x - y, |x, y| x - y)
@@ -273,7 +259,7 @@ impl Sub for Value {
 }
 
 impl Mul for Value {
-    type Output = Self;
+    type Output = Result<Self, CalcError>;
 
     fn mul(self, that: Value) -> Self::Output {
         self.castmap(that, |x, y| x * y, |x, y| x * y)
@@ -290,27 +276,25 @@ impl Div for Value {
         let value = match (self, that) {
             (Value::Float(n), Value::Float(m)) => Value::Float(n / m),
             (Value::Float(n), Value::Hex(m))
-            | (Value::Float(n), Value::Dec(m)) => {
-                Value::Float(n / into_float(m))
-            }
+            | (Value::Float(n), Value::Dec(m)) =>
+                Value::Float(n / ops::to_float(&m)?),
             (Value::Hex(n), Value::Float(m))
-            | (Value::Dec(n), Value::Float(m)) => {
-                Value::Float(into_float(n) / m)
-            }
+            | (Value::Dec(n), Value::Float(m)) =>
+                Value::Float(ops::to_float(&n)? / m),
             (Value::Hex(ref n), Value::Hex(ref m))
             | (Value::Dec(ref n), Value::Hex(ref m))
             | (Value::Hex(ref n), Value::Dec(ref m)) => {
                 if (n % m).is_zero() {
                     Value::Hex(n / m)
                 } else {
-                    Value::Float(into_float(n) / into_float(m))
+                    Value::Float(ops::to_float(n)? / ops::to_float(m)?)
                 }
             }
             (Value::Dec(ref n), Value::Dec(ref m)) => {
                 if (n % m).is_zero() {
                     Value::Dec(n / m)
                 } else {
-                    Value::Float(into_float(n) / into_float(m))
+                    Value::Float(ops::to_float(n)? / ops::to_float(m)?)
                 }
             }
         };
@@ -322,7 +306,7 @@ impl BitAnd for Value {
     type Output = Result<Self, CalcError>;
 
     fn bitand(self, that: Value) -> Self::Output {
-        self.intmap(that, "&", |n, m| ops::and(n, m))
+        self.intmap(&that, "&", |n, m| Ok(ops::and(n, m)))
     }
 }
 
@@ -330,7 +314,7 @@ impl BitOr for Value {
     type Output = Result<Self, CalcError>;
 
     fn bitor(self, that: Value) -> Self::Output {
-        self.intmap(that, "|", |n, m| ops::or(n, m))
+        self.intmap(&that, "|", |n, m| Ok(ops::or(n, m)))
     }
 }
 
@@ -338,7 +322,7 @@ impl BitXor for Value {
     type Output = Result<Self, CalcError>;
 
     fn bitxor(self, that: Value) -> Self::Output {
-        self.intmap(that, "^", |n, m| ops::xor(n, m))
+        self.intmap(&that, "^", |n, m| Ok(ops::xor(n, m)))
     }
 }
 
@@ -375,7 +359,7 @@ impl Rem for Value {
         if that.is_zero() {
             return Err(CalcError::DivideByZero);
         }
-        Ok(self.castmap(that, |x, y| x % y, |x, y| x % y))
+        self.castmap(that, |x, y| x % y, |x, y| x % y)
     }
 }
 
@@ -384,14 +368,18 @@ impl Shl<Value> for Value {
 
     fn shl(self, that: Value) -> Self::Output {
         self.intmap(
-            that,
+            &that,
             "<<",
             |n, m| {
-                if m < Zero::zero() {
-                    n / ops::int_powu(&(2 as u8).into(), &(-m).to_biguint().unwrap())
-                } else {
-                    n * ops::int_powu(&(2 as u8).into(), &m.to_biguint().unwrap())
-                }
+                m.to_i64()
+                 .map(|m| {
+                     if m < 0 {
+                        n >> ((-m) as usize)
+                     } else {
+                        n << (m as usize)
+                     }
+                 })
+                 .ok_or(CalcError::WouldOverflow(PartialComp::binary("<<", self, that)))
             }
         )
     }
@@ -401,7 +389,21 @@ impl Shr<Value> for Value {
     type Output = Result<Self, CalcError>;
 
     fn shr(self, that: Value) -> Self::Output {
-        self.intmap(that, "<<", |n, m| n / ops::int_powu(&m, &(2 as u8).into()))
+        self.intmap(
+            &that,
+            "<<",
+            |n, m| {
+                m.to_i64()
+                 .map(|m| {
+                     if m < 0 {
+                        n << ((-m) as usize)
+                     } else {
+                        n >> (m as usize)
+                     }
+                 })
+                 .ok_or(CalcError::WouldOverflow(PartialComp::binary(">>", self, that)))
+            }
+        )
     }
 }
 
@@ -413,16 +415,16 @@ mod tests {
     fn float_override() {
         let cases = vec![
             (
-                Value::Float(d128!(3)) + Value::dec(1),
+                (Value::Float(d128!(3)) + Value::dec(1)).unwrap(),
                 Value::Float(d128!(4)),
             ),
             (
-                Value::hex(5) - Value::Float(d128!(4.5)),
+                (Value::hex(5) - Value::Float(d128!(4.5))).unwrap(),
                 Value::Float(d128!(0.5)),
             ),
             (
-                Value::hex(24) * Value::dec(4)
-                    * Value::Float(d128!(1) / d128!(48)),
+                ((Value::hex(24) * Value::dec(4)).unwrap()
+                    * Value::Float(d128!(1) / d128!(48))).unwrap(),
                 Value::Float(d128!(2)),
             ),
         ];
@@ -435,7 +437,7 @@ mod tests {
     #[test]
     fn hex_override() {
         let cases = vec![
-            (Value::hex(3) * Value::dec(-2), Value::hex(-6)),
+            ((Value::hex(3) * Value::dec(-2)).unwrap(), Value::hex(-6)),
             (
                 (Value::hex(0x100) >> Value::hex(0x2)).unwrap(),
                 Value::hex(0x40),
