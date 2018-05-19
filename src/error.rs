@@ -1,6 +1,6 @@
+use num::bigint::ParseBigIntError;
 use std::error::Error;
 use std::fmt;
-use num::bigint::ParseBigIntError;
 
 /// Represents a partial computation that can be captured as part of an
 /// error message.
@@ -47,13 +47,10 @@ impl PartialComp {
 impl fmt::Display for PartialComp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            PartialComp::ToFloat(ref arg) => {
-                write!(f, "{} as float", arg)
+            PartialComp::ToFloat(ref arg) => write!(f, "{} as float", arg),
+            PartialComp::Unary { ref op, ref arg } => {
+                write!(f, "{} {}", op, arg)
             }
-            PartialComp::Unary {
-                ref op,
-                ref arg,
-            } => write!(f, "{} {}", op, arg),
             PartialComp::Binary {
                 ref op,
                 ref lhs,
@@ -94,11 +91,9 @@ impl fmt::Display for CalcError {
             UnrecognizedToken(ref token) => {
                 write!(f, "unrecognized token: {}", token)
             }
-            UnexpectedToken(ref token, ref kind) => write!(
-                f,
-                "expected {} token, got {} instead",
-                kind, token
-            ),
+            UnexpectedToken(ref token, ref kind) => {
+                write!(f, "expected {} token, got {} instead", kind, token)
+            }
             UnknownAtom(ref atom) => {
                 write!(f, "unknown variable or function '{}'", atom)
             }

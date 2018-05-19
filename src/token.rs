@@ -146,7 +146,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    tokens.push(c.operator_type()
+                    tokens.push(c
+                        .operator_type()
                         .ok_or_else(|| InvalidOperator(c))?);
                     chars.next();
                 }
@@ -160,7 +161,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                             chars.next();
                         }
                         _ => {
-                            tokens.push(c.operator_type()
+                            tokens.push(c
+                                .operator_type()
                                 .ok_or_else(|| InvalidOperator(c))?);
                         }
                     }
@@ -226,7 +228,8 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
             } else {
                 match c.check_operator() {
                     OperatorState::Complete => {
-                        let token = c.operator_type()
+                        let token = c
+                            .operator_type()
                             .ok_or_else(|| InvalidOperator(c))?;
                         if token != Token::OpenParen
                             && token != Token::CloseParen
@@ -250,7 +253,8 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                                 chars.next();
                             }
                             _ => {
-                                let token = c.operator_type()
+                                let token = c
+                                    .operator_type()
                                     .ok_or_else(|| InvalidOperator(c))?;
                                 if token != Token::OpenParen
                                     && token != Token::CloseParen

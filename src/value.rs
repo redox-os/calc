@@ -1,6 +1,6 @@
-use num::{Zero, BigInt, BigUint, ToPrimitive};
 use decimal::d128;
 use error::{CalcError, PartialComp};
+use num::{BigInt, BigUint, ToPrimitive, Zero};
 use std::fmt;
 use std::ops::*;
 
@@ -53,17 +53,17 @@ pub enum Value {
 }
 
 pub mod ops {
+    use super::{CalcError, Integral, PartialComp, UIntegral};
     use decimal::d128;
+    use num::{Integer, ToPrimitive, Zero};
     use std::iter::repeat;
-    use num::{Zero, Integer, ToPrimitive};
-    use super::{UIntegral, Integral, CalcError, PartialComp};
 
     macro_rules! bitwise_op {
         ($name:ident, $fun:expr) => {
             pub fn $name(n: &Integral, m: &Integral) -> Integral {
                 bitwise(n, m, $fun)
             }
-        }
+        };
     }
 
     fn equalize(left: &mut Vec<u8>, right: &mut Vec<u8>) {
@@ -78,7 +78,11 @@ pub mod ops {
         }
     }
 
-    pub fn bitwise<F: Fn(u8, u8) -> u8>(n: &Integral, m: &Integral, fun: F) -> Integral {
+    pub fn bitwise<F: Fn(u8, u8) -> u8>(
+        n: &Integral,
+        m: &Integral,
+        fun: F,
+    ) -> Integral {
         let mut n_bytes = n.to_signed_bytes_le();
         let mut m_bytes = m.to_signed_bytes_le();
         equalize(&mut n_bytes, &mut m_bytes);
@@ -96,10 +100,7 @@ pub mod ops {
 
     pub fn not(n: Integral) -> Integral {
         let bytes = n.to_signed_bytes_le();
-        let res: Vec<u8> = bytes
-            .iter()
-            .map(|n| !n)
-            .collect();
+        let res: Vec<u8> = bytes.iter().map(|n| !n).collect();
         Integral::from_signed_bytes_le(&res)
     }
 
@@ -122,9 +123,9 @@ pub mod ops {
     }
 
     pub fn to_float(n: &Integral) -> Result<d128, CalcError> {
-        n.to_i64()
-         .map(Into::into)
-         .ok_or(CalcError::WouldTruncate(PartialComp::ToFloat(n.to_string())))
+        n.to_i64().map(Into::into).ok_or(CalcError::WouldTruncate(
+            PartialComp::ToFloat(n.to_string()),
+        ))
     }
 
 }
@@ -167,19 +168,22 @@ impl Value {
         match (self, that) {
             (Value::Integral(n, t1), Value::Integral(m, t2)) => {
                 Ok(Value::Integral(f(n, m)?, *t1 + t2))
-            },
+            }
             (v1 @ Value::Float(_), v2 @ _) | (v1 @ _, v2 @ Value::Float(_)) => {
-                Err(CalcError::BadTypes(PartialComp::binary(
-                    op, v1, v2,
-                )))
+                Err(CalcError::BadTypes(PartialComp::binary(op, v1, v2)))
             }
         }
     }
 
     /// Represents a computation that will cast integer types to floating
-    /// point. There might be a possible truncation when we convert a BigInt into a floating point,
-    /// so we have to be careful here.
-    pub fn castmap<F, G>(self, that: Value, f: F, g: G) -> Result<Value, CalcError>
+    /// point. There might be a possible truncation when we convert a BigInt
+    /// into a floating point, so we have to be careful here.
+    pub fn castmap<F, G>(
+        self,
+        that: Value,
+        f: F,
+        g: G,
+    ) -> Result<Value, CalcError>
     where
         F: Fn(Integral, Integral) -> Integral,
         G: Fn(d128, d128) -> d128,
@@ -221,7 +225,6 @@ impl Value {
         };
         Ok(value)
     }
-
 }
 
 impl fmt::Display for Value {
@@ -366,21 +369,19 @@ impl Shl<Value> for Value {
     type Output = Result<Self, CalcError>;
 
     fn shl(self, that: Value) -> Self::Output {
-        self.intmap(
-            &that,
-            "<<",
-            |n, m| {
-                m.to_i64()
-                 .map(|m| {
-                     if m < 0 {
+        self.intmap(&that, "<<", |n, m| {
+            m.to_i64()
+                .map(|m| {
+                    if m < 0 {
                         n >> ((-m) as usize)
-                     } else {
+                    } else {
                         n << (m as usize)
-                     }
-                 })
-                 .ok_or(CalcError::WouldOverflow(PartialComp::binary("<<", &self, &that)))
-            }
-        )
+                    }
+                })
+                .ok_or(CalcError::WouldOverflow(PartialComp::binary(
+                    "<<", &self, &that,
+                )))
+        })
     }
 }
 
@@ -388,23 +389,19 @@ impl Shr<Value> for Value {
     type Output = Result<Self, CalcError>;
 
     fn shr(self, that: Value) -> Self::Output {
-        self.intmap(
-            &that,
-            "<<",
-            |n, m| {
-                m.to_i64()
-                 .map(|m| {
-                     if m < 0 {
+        self.intmap(&that, "<<", |n, m| {
+            m.to_i64()
+                .map(|m| {
+                    if m < 0 {
                         n << ((-m) as usize)
-                     } else {
+                    } else {
                         n >> (m as usize)
-                     }
-                 })
-                 .ok_or(
-                     CalcError::WouldOverflow(PartialComp::binary(">>", &self, &that))
-                 )
-            }
-        )
+                    }
+                })
+                .ok_or(CalcError::WouldOverflow(PartialComp::binary(
+                    ">>", &self, &that,
+                )))
+        })
     }
 }
 
@@ -425,7 +422,8 @@ mod tests {
             ),
             (
                 ((Value::hex(24) * Value::dec(4)).unwrap()
-                    * Value::Float(d128!(1) / d128!(48))).unwrap(),
+                    * Value::Float(d128!(1) / d128!(48)))
+                    .unwrap(),
                 Value::Float(d128!(2)),
             ),
         ];
