@@ -146,24 +146,27 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
         } else {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    tokens.push(c
-                        .operator_type()
-                        .ok_or_else(|| InvalidOperator(c))?);
+                    tokens.push(
+                        c.operator_type().ok_or_else(|| InvalidOperator(c))?,
+                    );
                     chars.next();
                 }
                 OperatorState::PotentiallyIncomplete => {
                     chars.next();
                     match chars.peek() {
                         Some(&next_char) if next_char.is_operator() => {
-                            tokens.push([c, next_char]
-                                .operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?);
+                            tokens.push(
+                                [c, next_char]
+                                    .operator_type()
+                                    .ok_or_else(|| InvalidOperator(c))?,
+                            );
                             chars.next();
                         }
                         _ => {
-                            tokens.push(c
-                                .operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?);
+                            tokens.push(
+                                c.operator_type()
+                                    .ok_or_else(|| InvalidOperator(c))?,
+                            );
                         }
                     }
                 }
