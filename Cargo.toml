@@ -5,7 +5,7 @@ categories = [
     "parsing",
 ]
 description = "Rust library for parsing and processing arithmetic expressions"
-homepage = "https://github.com/redox-os/calc"
+homepage = "https://gitlab.redox-os.org/redox-os/calc"
 include = [
     "**/*.rs",
     "Cargo.toml",
@@ -17,7 +17,7 @@ keywords = [
 license-file = "LICENSE"
 name = "calculate"
 readme = "README.md"
-repository = "https://github.com/redox-os/calc"
+repository = "https://gitlab.redox-os.org/redox-os/calc"
 version = "0.7.0"
 
 [[bin]]
