@@ -2,6 +2,8 @@ use error::CalcError;
 use token::*;
 use value::{Value, IR};
 
+const RECURSION_LIMIT: usize = 10;
+
 /// Represents an environment for evaluating a mathematical expression
 pub trait Environment {
     /// Look up the arity of an atom:
@@ -18,6 +20,10 @@ pub trait Environment {
         atom: &str,
         args: &[Value],
     ) -> Result<Value, CalcError>;
+
+    fn add_recursion_level(&mut self);
+    fn subtract_recursion_level(&mut self);
+    fn get_recursion_level(&self) -> usize;
 }
 
 fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
@@ -218,11 +224,16 @@ where
                 }
             }
             Token::OpenParen => {
+                env.add_recursion_level();
+                if env.get_recursion_level() > RECURSION_LIMIT {
+                    Err(CalcError::RecursionLimitReached)?
+                }
                 let mut ir = d_expr(&token_list[1..], env)?;
                 let close_paren = ir.tokens + 1;
                 if close_paren < token_list.len() {
                     match token_list[close_paren] {
                         Token::CloseParen => {
+                            env.subtract_recursion_level();
                             ir.tokens = close_paren + 1;
                             Ok(ir)
                         }
@@ -245,7 +256,17 @@ where
     }
 }
 
-pub struct DefaultEnvironment;
+pub struct DefaultEnvironment {
+    recursion_level: usize,
+}
+
+impl DefaultEnvironment {
+    pub fn new() -> DefaultEnvironment {
+        DefaultEnvironment {
+            recursion_level: 0
+        }
+    }
+}
 
 impl Environment for DefaultEnvironment {
     fn arity(&self, atom: &str) -> Option<usize> {
@@ -275,6 +296,17 @@ impl Environment for DefaultEnvironment {
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
     }
+
+    fn get_recursion_level(&self) -> usize {
+        self.recursion_level
+    }
+
+    fn add_recursion_level(&mut self) {
+        self.recursion_level += 1;
+    }
+    fn subtract_recursion_level(&mut self) {
+        self.recursion_level -= 1;
+    }
 }
 
 pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
@@ -298,7 +330,7 @@ mod tests {
             Token::Number(Value::dec(1)),
         ];
         let expected = Value::dec(0);
-        let mut env = DefaultEnvironment;
+        let mut env = DefaultEnvironment::new();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
 
@@ -312,7 +344,7 @@ mod tests {
             Token::Number(Value::Float(d128!(2.0))),
         ];
         let expected = Value::Float(d128!(2.0));
-        let mut env = DefaultEnvironment;
+        let mut env = DefaultEnvironment::new();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
 

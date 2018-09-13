@@ -73,6 +73,7 @@ pub enum CalcError {
     UnmatchedParenthesis,
     WouldOverflow(PartialComp),
     WouldTruncate(PartialComp),
+    RecursionLimitReached,
 }
 
 use CalcError::*;
@@ -105,6 +106,7 @@ impl fmt::Display for CalcError {
             }
             UnexpectedEndOfInput => write!(f, "unexpected end of input"),
             UnmatchedParenthesis => write!(f, "unmatched patenthesis"),
+            RecursionLimitReached => write!(f, "recursion limit reached"),
         }
     }
 }

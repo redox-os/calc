@@ -21,7 +21,7 @@ pub use value::Value;
 
 /// Evalulates a regular mathematical expression.
 pub fn eval(input: &str) -> Result<Value, CalcError> {
-    let mut env = parse::DefaultEnvironment;
+    let mut env = parse::DefaultEnvironment::new();
     token::tokenize(input).and_then(|x| parse::parse(&x, &mut env))
 }
 
@@ -50,7 +50,7 @@ where
 /// - `+ * 3 4 5` is equivalent to `3 * 4 + 5`
 /// - `+ / * 5 3 2 * + 1 3 5` is equivalent to `((5 * 3) / 2) + ((1 + 3) * 5)`
 pub fn eval_polish(input: &str) -> Result<Value, CalcError> {
-    let mut env = parse::DefaultEnvironment;
+    let mut env = parse::DefaultEnvironment::new();
     token::tokenize_polish(input).and_then(|x| parse::parse(&x, &mut env))
 }
 
@@ -147,6 +147,20 @@ mod tests {
 
         for (input, expected) in cases {
             assert_eq!(eval(input), Ok(expected));
+        }
+    }
+
+    #[test]
+    fn recursion() {
+        let cases = vec![
+            (
+                "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((",
+                Err(CalcError::RecursionLimitReached)
+            ),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(eval(input), expected);
         }
     }
 
