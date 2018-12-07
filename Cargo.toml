@@ -31,6 +31,7 @@ decimal = "2.0.0"
 failure = "0.1.1"
 liner = "0.4.2"
 num = "0.1"
+rand = "0.6.1"
 
 [lib]
 name = "calc"

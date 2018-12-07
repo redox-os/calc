@@ -7,6 +7,7 @@ extern crate failure;
 extern crate num;
 #[cfg(test)]
 extern crate test;
+extern crate rand;
 
 #[cfg(test)]
 mod bench;

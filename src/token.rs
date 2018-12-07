@@ -25,6 +25,7 @@ pub enum Token {
     Modulo,
     OpenParen,
     CloseParen,
+    Dice,
     Number(Value),
     Atom(String),
 }
@@ -48,6 +49,7 @@ impl fmt::Display for Token {
             Token::Modulo => write!(f, "Modulo"),
             Token::OpenParen => write!(f, "OpenParen"),
             Token::CloseParen => write!(f, "CloseParen"),
+            Token::Dice => write!(f, "Dice"),
             Token::Number(ref n) => write!(f, "'{}'", n),
             Token::Atom(ref s) => write!(f, "'{}'", s),
         }
@@ -68,7 +70,7 @@ impl IsOperator for char {
     fn is_operator(self) -> bool {
         match self {
             '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>'
-            | '%' | '(' | ')' | '*' | '<' => true,
+            | '%' | '(' | ')' | '*' | '<' | 'd' => true,
             _ => false,
         }
     }
@@ -82,7 +84,7 @@ impl CheckOperator for char {
     fn check_operator(self) -> OperatorState {
         match self {
             '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%'
-            | '(' | ')' => OperatorState::Complete,
+            | '(' | ')' | 'd' => OperatorState::Complete,
             '*' | '<' | '>' => OperatorState::PotentiallyIncomplete,
             _ => OperatorState::NotAnOperator,
         }
@@ -123,6 +125,7 @@ impl OperatorMatch for char {
             '%' => Some(Token::Modulo),
             '(' => Some(Token::OpenParen),
             ')' => Some(Token::CloseParen),
+            'd' => Some(Token::Dice),
             _ => None,
         }
     }
@@ -139,46 +142,45 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     let mut chars = input.chars().peekable();
 
     while let Some(&c) = chars.peek() {
-        if c.is_alphabetic() {
-            tokens.push(Token::Atom(consume_atom(&mut chars)));
-        } else if c.is_digit(16) || c == '.' {
-            tokens.push(Token::Number(consume_number(&mut chars)?));
-        } else {
-            match c.check_operator() {
-                OperatorState::Complete => {
-                    tokens.push(
-                        c.operator_type().ok_or_else(|| InvalidOperator(c))?,
-                    );
-                    chars.next();
-                }
-                OperatorState::PotentiallyIncomplete => {
-                    chars.next();
-                    match chars.peek() {
-                        Some(&next_char) if next_char.is_operator() => {
-                            tokens.push(
-                                [c, next_char]
-                                    .operator_type()
-                                    .ok_or_else(|| InvalidOperator(c))?,
-                            );
-                            chars.next();
-                        }
-                        _ => {
-                            tokens.push(
-                                c.operator_type()
-                                    .ok_or_else(|| InvalidOperator(c))?,
-                            );
-                        }
-                    }
-                }
-                OperatorState::NotAnOperator => {
-                    if c.is_whitespace() {
+        match c.check_operator() {
+            OperatorState::Complete => {
+                tokens.push(
+                    c.operator_type().ok_or_else(|| InvalidOperator(c))?,
+                );
+                chars.next();
+            }
+            OperatorState::PotentiallyIncomplete => {
+                chars.next();
+                match chars.peek() {
+                    Some(&next_char) if next_char.is_operator() => {
+                        tokens.push(
+                            [c, next_char]
+                                .operator_type()
+                                .ok_or_else(|| InvalidOperator(c))?,
+                        );
                         chars.next();
-                    } else {
-                        let token_string = consume_until_new_token(&mut chars);
-                        return Err(CalcError::UnrecognizedToken(token_string));
+                    }
+                    _ => {
+                        tokens.push(
+                            c.operator_type()
+                                .ok_or_else(|| InvalidOperator(c))?,
+                        );
                     }
                 }
             }
+            OperatorState::NotAnOperator => {
+                if c.is_whitespace() {
+                    chars.next();
+                } else if c.is_alphabetic() {
+                    tokens.push(Token::Atom(consume_atom(&mut chars)));
+                } else if c.is_digit(16) || c == '.' {
+                    tokens.push(Token::Number(consume_number(&mut chars)?));
+                } else {
+                    let token_string = consume_until_new_token(&mut chars);
+                    return Err(CalcError::UnrecognizedToken(token_string));
+                }
+            }
+
         }
     }
     Ok(tokens)
@@ -222,61 +224,59 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
     'outer: loop {
         // Collect the operators until a number is found.
         while let Some(&c) = chars.peek() {
-            if c.is_alphabetic() {
-                values.push(PolishValue::Atom(consume_atom(&mut chars)));
-                break;
-            } else if c.is_digit(16) || c == '.' {
-                values.push(PolishValue::Number(consume_number(&mut chars)?));
-                break;
-            } else {
-                match c.check_operator() {
-                    OperatorState::Complete => {
-                        let token = c
-                            .operator_type()
-                            .ok_or_else(|| InvalidOperator(c))?;
-                        if token != Token::OpenParen
-                            && token != Token::CloseParen
-                        {
-                            operators.push(token);
-                        }
-                        chars.next();
+            match c.check_operator() {
+                OperatorState::Complete => {
+                    let token = c
+                        .operator_type()
+                        .ok_or_else(|| InvalidOperator(c))?;
+                    if token != Token::OpenParen
+                        && token != Token::CloseParen
+                    {
+                        operators.push(token);
                     }
-                    OperatorState::PotentiallyIncomplete => {
-                        chars.next();
-                        match chars.peek() {
-                            Some(&next_char) if next_char.is_operator() => {
-                                let token = [c, next_char]
-                                    .operator_type()
-                                    .ok_or_else(|| InvalidOperator(c))?;
-                                if token != Token::OpenParen
-                                    && token != Token::CloseParen
-                                {
-                                    operators.push(token);
-                                }
-                                chars.next();
+                    chars.next();
+                }
+                OperatorState::PotentiallyIncomplete => {
+                    chars.next();
+                    match chars.peek() {
+                        Some(&next_char) if next_char.is_operator() => {
+                            let token = [c, next_char]
+                                .operator_type()
+                                .ok_or_else(|| InvalidOperator(c))?;
+                            if token != Token::OpenParen
+                                && token != Token::CloseParen
+                            {
+                                operators.push(token);
                             }
-                            _ => {
-                                let token = c
-                                    .operator_type()
-                                    .ok_or_else(|| InvalidOperator(c))?;
-                                if token != Token::OpenParen
-                                    && token != Token::CloseParen
-                                {
-                                    operators.push(token);
-                                }
-                            }
-                        }
-                    }
-                    OperatorState::NotAnOperator => {
-                        if c.is_whitespace() {
                             chars.next();
-                        } else {
-                            let token_string =
-                                consume_until_new_token(&mut chars);
-                            return Err(CalcError::UnrecognizedToken(
-                                token_string,
-                            ));
                         }
+                        _ => {
+                            let token = c
+                                .operator_type()
+                                .ok_or_else(|| InvalidOperator(c))?;
+                            if token != Token::OpenParen
+                                && token != Token::CloseParen
+                            {
+                                operators.push(token);
+                            }
+                        }
+                    }
+                }
+                OperatorState::NotAnOperator => {
+                    if c.is_whitespace() {
+                        chars.next();
+                    } else if c.is_alphabetic() {
+                        values.push(PolishValue::Atom(consume_atom(&mut chars)));
+                        break;
+                    } else if c.is_digit(16) || c == '.' {
+                        values.push(PolishValue::Number(consume_number(&mut chars)?));
+                        break;
+                    } else {
+                        let token_string =
+                            consume_until_new_token(&mut chars);
+                        return Err(CalcError::UnrecognizedToken(
+                            token_string,
+                        ));
                     }
                 }
             }
@@ -477,6 +477,28 @@ mod tests {
             Token::CloseParen,
         ];
         assert_eq!(tokenize(line), Ok(expected));
+    }
+
+    #[test]
+    fn dice() {
+        let line = "3d6";
+        let expected = vec![
+            Token::Number(Value::dec(3)),
+            Token::Dice,
+            Token::Number(Value::dec(6)),
+        ];
+        assert_eq!(tokenize(line), Ok(expected));
+    }
+
+    #[test]
+    fn dice_polish() {
+        let line = "d 3 6";
+        let expected = vec![
+            Token::Number(Value::dec(3)),
+            Token::Dice,
+            Token::Number(Value::dec(6)),
+        ];
+        assert_eq!(tokenize_polish(line), Ok(expected));
     }
 
     #[test]
