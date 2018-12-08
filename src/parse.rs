@@ -278,9 +278,7 @@ pub struct DefaultEnvironment {
 
 impl DefaultEnvironment {
     pub fn new() -> DefaultEnvironment {
-        DefaultEnvironment {
-            recursion_level: 0
-        }
+        DefaultEnvironment { recursion_level: 0 }
     }
 }
 
