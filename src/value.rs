@@ -423,7 +423,7 @@ mod tests {
             (
                 ((Value::hex(24) * Value::dec(4)).unwrap()
                     * Value::Float(d128!(1) / d128!(48)))
-                    .unwrap(),
+                .unwrap(),
                 Value::Float(d128!(2)),
             ),
         ];

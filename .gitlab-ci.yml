@@ -3,8 +3,10 @@ before_script:
   - apt-get install -qq build-essential curl git
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
   - source "$HOME/.cargo/env"
+  - rustup component add rustfmt-preview
 
 nightly:
   script:
+    - cargo fmt -- --check
     - cargo build
     - cargo test
