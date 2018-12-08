@@ -1,7 +1,7 @@
 use error::CalcError;
+use rand::Rng;
 use token::*;
 use value::{Value, IR};
-use rand::Rng;
 
 const RECURSION_LIMIT: usize = 10;
 
@@ -140,15 +140,15 @@ where
             }
             Token::Dice => {
                 let f2 = f_expr(&token_list[index + 1..], env)?;
-                let dice_rolls:i32 = f1.value.as_float()?.into();
-                let dice_max:i32 = f2.value.as_float()?.into();
+                let dice_rolls: i32 = f1.value.as_float()?.into();
+                let dice_max: i32 = f2.value.as_float()?.into();
                 if dice_rolls < 1 || dice_max < 1 {
                     return Err(CalcError::ImpossibleDice);
                 }
                 let mut dice_result = 0;
                 let mut rng = rand::thread_rng();
                 for _i in 0..dice_rolls {
-                    dice_result += rng.gen_range(1, dice_max+1);
+                    dice_result += rng.gen_range(1, dice_max + 1);
                 }
                 f1.value = Value::dec(dice_result);
                 f1.tokens += f2.tokens + 1;

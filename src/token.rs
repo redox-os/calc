@@ -144,9 +144,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     while let Some(&c) = chars.peek() {
         match c.check_operator() {
             OperatorState::Complete => {
-                tokens.push(
-                    c.operator_type().ok_or_else(|| InvalidOperator(c))?,
-                );
+                tokens
+                    .push(c.operator_type().ok_or_else(|| InvalidOperator(c))?);
                 chars.next();
             }
             OperatorState::PotentiallyIncomplete => {
@@ -180,7 +179,6 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                     return Err(CalcError::UnrecognizedToken(token_string));
                 }
             }
-
         }
     }
     Ok(tokens)
@@ -226,12 +224,9 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
         while let Some(&c) = chars.peek() {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    let token = c
-                        .operator_type()
-                        .ok_or_else(|| InvalidOperator(c))?;
-                    if token != Token::OpenParen
-                        && token != Token::CloseParen
-                    {
+                    let token =
+                        c.operator_type().ok_or_else(|| InvalidOperator(c))?;
+                    if token != Token::OpenParen && token != Token::CloseParen {
                         operators.push(token);
                     }
                     chars.next();
@@ -266,17 +261,17 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                     if c.is_whitespace() {
                         chars.next();
                     } else if c.is_alphabetic() {
-                        values.push(PolishValue::Atom(consume_atom(&mut chars)));
+                        values
+                            .push(PolishValue::Atom(consume_atom(&mut chars)));
                         break;
                     } else if c.is_digit(16) || c == '.' {
-                        values.push(PolishValue::Number(consume_number(&mut chars)?));
+                        values.push(PolishValue::Number(consume_number(
+                            &mut chars,
+                        )?));
                         break;
                     } else {
-                        let token_string =
-                            consume_until_new_token(&mut chars);
-                        return Err(CalcError::UnrecognizedToken(
-                            token_string,
-                        ));
+                        let token_string = consume_until_new_token(&mut chars);
+                        return Err(CalcError::UnrecognizedToken(token_string));
                     }
                 }
             }

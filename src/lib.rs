@@ -5,9 +5,9 @@ extern crate decimal;
 #[macro_use]
 extern crate failure;
 extern crate num;
+extern crate rand;
 #[cfg(test)]
 extern crate test;
-extern crate rand;
 
 #[cfg(test)]
 mod bench;
