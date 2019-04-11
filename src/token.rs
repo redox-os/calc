@@ -396,24 +396,27 @@ where
     match input.peek() {
         Some(&'0') => {
             input.next();
-            match input.peek() {
-                Some(&'x') | Some(&'X') => {
+            match input.peek().cloned() {
+                Some('x') | Some('X') => {
                     input.next();
                     let digits = digits(input, 16);
                     let num = Integral::from_str_radix(&digits, 16)?;
                     return Ok(Value::hex(num));
                 }
-                Some(&_) => (),
-                None => return Ok(Value::dec(0)),
+                Some(c) if c.is_digit(16) || c == '.' => (),
+                _ => return Ok(Value::dec(0)),
             }
         }
         Some(_) => (),
         None => return Err(CalcError::UnexpectedEndOfInput),
     }
-    let whole = digits(input, 10);
+    let mut whole = digits(input, 10);
     if let Some(&'.') = input.peek() {
         input.next();
         let frac = digits(input, 10);
+        if whole.is_empty() && frac.is_empty() {
+            whole = "0".to_string();
+        }
         let num = [whole, ".".into(), frac]
             .concat()
             .parse::<d128>()
@@ -470,6 +473,19 @@ mod tests {
             Token::Modulo,
             Token::Number(Value::dec(2)),
             Token::CloseParen,
+        ];
+        assert_eq!(tokenize(line), Ok(expected));
+    }
+
+    #[test]
+    fn zero() {
+        let line = "0 + 0. + 0";
+        let expected = vec![
+            Token::Number(Value::dec(0)),
+            Token::Plus,
+            Token::Number(Value::Float(d128::from(0))),
+            Token::Plus,
+            Token::Number(Value::dec(0)),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
