@@ -373,14 +373,11 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
     Ok(tokens)
 }
 
-fn digits<I>(input: &mut Peekable<I>, radix: u32, has_zero: bool) -> String
+fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
 where
     I: Iterator<Item = char>,
 {
     let mut number = String::new();
-    if has_zero {
-        number.push('0')
-    }
     while let Some(&c) = input.peek() {
         if c.is_digit(radix) {
             number.push(c);
@@ -396,27 +393,30 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Value, CalcError>
 where
     I: Iterator<Item = char>,
 {
-    let mut has_zero = false;
     match input.peek() {
         Some(&'0') => {
             input.next();
-            match input.peek() {
-                Some(&'x') | Some(&'X') => {
+            match input.peek().cloned() {
+                Some('x') | Some('X') => {
                     input.next();
-                    let digits = digits(input, 16, false);
+                    let digits = digits(input, 16);
                     let num = Integral::from_str_radix(&digits, 16)?;
                     return Ok(Value::hex(num));
                 }
-                _ => has_zero = true,
+                Some(c) if c.is_digit(16) || c == '.' => (),
+                _ => return Ok(Value::dec(0)),
             }
         }
         Some(_) => (),
         None => return Err(CalcError::UnexpectedEndOfInput),
     }
-    let whole = digits(input, 10, has_zero);
+    let mut whole = digits(input, 10);
     if let Some(&'.') = input.peek() {
         input.next();
-        let frac = digits(input, 10, false);
+        let frac = digits(input, 10);
+        if whole.is_empty() && frac.is_empty() {
+            whole = "0".to_string();
+        }
         let num = [whole, ".".into(), frac]
             .concat()
             .parse::<d128>()
@@ -473,6 +473,19 @@ mod tests {
             Token::Modulo,
             Token::Number(Value::dec(2)),
             Token::CloseParen,
+        ];
+        assert_eq!(tokenize(line), Ok(expected));
+    }
+
+    #[test]
+    fn zero() {
+        let line = "0 + 0. + 0";
+        let expected = vec![
+            Token::Number(Value::dec(0)),
+            Token::Plus,
+            Token::Number(Value::Float(d128::from(0))),
+            Token::Plus,
+            Token::Number(Value::dec(0)),
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
