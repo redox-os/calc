@@ -373,11 +373,14 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
     Ok(tokens)
 }
 
-fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
+fn digits<I>(input: &mut Peekable<I>, radix: u32, has_zero: bool) -> String
 where
     I: Iterator<Item = char>,
 {
     let mut number = String::new();
+    if has_zero {
+        number.push('0')
+    }
     while let Some(&c) = input.peek() {
         if c.is_digit(radix) {
             number.push(c);
@@ -393,27 +396,27 @@ fn consume_number<I>(input: &mut Peekable<I>) -> Result<Value, CalcError>
 where
     I: Iterator<Item = char>,
 {
+    let mut has_zero = false;
     match input.peek() {
         Some(&'0') => {
             input.next();
             match input.peek() {
                 Some(&'x') | Some(&'X') => {
                     input.next();
-                    let digits = digits(input, 16);
+                    let digits = digits(input, 16, false);
                     let num = Integral::from_str_radix(&digits, 16)?;
                     return Ok(Value::hex(num));
                 }
-                Some(&_) => (),
-                None => return Ok(Value::dec(0)),
+                _ => has_zero = true,
             }
         }
         Some(_) => (),
         None => return Err(CalcError::UnexpectedEndOfInput),
     }
-    let whole = digits(input, 10);
+    let whole = digits(input, 10, has_zero);
     if let Some(&'.') = input.peek() {
         input.next();
-        let frac = digits(input, 10);
+        let frac = digits(input, 10, false);
         let num = [whole, ".".into(), frac]
             .concat()
             .parse::<d128>()
