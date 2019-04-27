@@ -25,13 +25,13 @@ name = "calc"
 path = "src/bin.rs"
 
 [dependencies]
-atty = "0.2.3"
-clap = "2"
+atty = "0.2.11"
+clap = "2.33.0"
 decimal = { git = "https://github.com/alkis/decimal.git", default-features = false }
-failure = "0.1.1"
-liner = "0.4.2"
-num = "0.1"
-rand = "0.6.1"
+failure = "0.1.5"
+liner = "0.4.4"
+num = "0.2.0"
+rand = "0.6.5"
 
 [lib]
 name = "calc"
