@@ -1,14 +1,9 @@
-extern crate atty;
-extern crate calc;
-extern crate clap;
-extern crate liner;
-
 use std::fmt;
 use std::process::exit;
 
 use std::io::{self, stdout, BufRead, Write};
 
-use calc::{eval, eval_polish, CalcError};
+use calc::{eval, eval_polish, eval_polish_with_env, eval_with_env, CalcError};
 
 use clap::{App, Arg};
 
@@ -71,10 +66,17 @@ pub fn calc() -> Result<(), RuntimeError> {
 
     macro_rules! eval {
         ($expr:expr) => {
-            if polish {
-                eval_polish($expr)?
-            } else {
-                eval($expr)?
+            match polish {
+                true => eval_polish($expr)?,
+                false => eval($expr)?,
+            }
+        };
+    }
+    macro_rules! eval_with_env {
+        ($expr:expr, $env:expr) => {
+            match polish {
+                true => eval_polish_with_env($expr, $env)?,
+                false => eval_with_env($expr, $env)?,
             }
         };
     }
@@ -90,12 +92,19 @@ pub fn calc() -> Result<(), RuntimeError> {
         None => {
             if atty::is(atty::Stream::Stdin) {
                 let mut con = Context::new();
+                let mut ans = None;
                 loop {
                     let line = con.read_line(PROMPT, &mut |_| {})?;
                     match line.trim() {
                         "" => (),
                         "exit" => break,
-                        s => writeln!(stdout, "{}", eval!(s))?,
+                        s => {
+                            let mut env =
+                                calc::parse::DefaultEnvironment::with_ans(ans);
+                            let evaluated = eval_with_env!(s, &mut env);
+                            writeln!(stdout, "{}", evaluated)?;
+                            ans = Some(evaluated);
+                        }
                     }
                     con.history.push(line.into())?;
                 }

@@ -9,6 +9,7 @@ use std::iter::Peekable;
 /// Tokens used for parsing an arithmetic expression
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
+    Ans,
     Plus,
     Minus,
     Divide,
@@ -33,6 +34,7 @@ pub enum Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Token::Ans => write!(f, "Ans"),
             Token::Plus => write!(f, "Plus"),
             Token::Minus => write!(f, "Minus"),
             Token::Divide => write!(f, "Divide"),
@@ -171,7 +173,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                 if c.is_whitespace() {
                     chars.next();
                 } else if c.is_alphabetic() {
-                    tokens.push(Token::Atom(consume_atom(&mut chars)));
+                    tokens.push(consume_ans_or_atom(&mut chars).into());
                 } else if c.is_digit(16) || c == '.' {
                     tokens.push(Token::Number(consume_number(&mut chars)?));
                 } else {
@@ -201,14 +203,26 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
     // tokens for the infix format.
     #[derive(Debug)]
     enum PolishValue {
+        Ans,
         Atom(String),
         Number(Value),
     }
     impl From<PolishValue> for Token {
         fn from(polish: PolishValue) -> Token {
             match polish {
+                PolishValue::Ans => Token::Ans,
                 PolishValue::Atom(atom) => Token::Atom(atom),
                 PolishValue::Number(val) => Token::Number(val),
+            }
+        }
+    }
+    impl From<Token> for PolishValue {
+        fn from(token: Token) -> PolishValue {
+            match token {
+                Token::Ans => PolishValue::Ans,
+                Token::Atom(atom) => PolishValue::Atom(atom),
+                Token::Number(val) => PolishValue::Number(val),
+                _ => unreachable!(),
             }
         }
     }
@@ -261,8 +275,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                     if c.is_whitespace() {
                         chars.next();
                     } else if c.is_alphabetic() {
-                        values
-                            .push(PolishValue::Atom(consume_atom(&mut chars)));
+                        values.push(consume_ans_or_atom(&mut chars).into());
                         break;
                     } else if c.is_digit(16) || c == '.' {
                         values.push(PolishValue::Number(consume_number(
@@ -281,7 +294,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
         // operators are found.
         while let Some(&c) = chars.peek() {
             if c.is_alphabetic() {
-                values.push(PolishValue::Atom(consume_atom(&mut chars)));
+                values.push(consume_ans_or_atom(&mut chars).into());
             } else if c.is_digit(16) || c == '.' {
                 values.push(PolishValue::Number(consume_number(&mut chars)?));
             } else if c.is_whitespace() || c == ')' {
@@ -371,6 +384,18 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
     }
 
     Ok(tokens)
+}
+
+fn consume_ans_or_atom<I>(input: &mut Peekable<I>) -> Token
+where
+    I: Iterator<Item = char>,
+{
+    let atom = consume_atom(input);
+    if atom.eq_ignore_ascii_case("ans") {
+        Token::Ans
+    } else {
+        Token::Atom(atom)
+    }
 }
 
 fn digits<I>(input: &mut Peekable<I>, radix: u32) -> String
@@ -509,6 +534,29 @@ mod tests {
             Token::Dice,
             Token::Number(Value::dec(6)),
         ];
+        assert_eq!(tokenize_polish(line), Ok(expected));
+    }
+
+    #[test]
+    fn ans() {
+        let line = "ans*3";
+        let expected =
+            vec![Token::Ans, Token::Multiply, Token::Number(Value::dec(3))];
+        assert_eq!(tokenize(line), Ok(expected));
+    }
+
+    #[test]
+    fn ans_polish() {
+        let line = "* ans 3";
+        let expected =
+            vec![Token::Ans, Token::Multiply, Token::Number(Value::dec(3))];
+        assert_eq!(tokenize_polish(line), Ok(expected));
+    }
+
+    #[test]
+    fn ans_subtract_ans_polish() {
+        let line = "- ans ans";
+        let expected = vec![Token::Ans, Token::Minus, Token::Ans];
         assert_eq!(tokenize_polish(line), Ok(expected));
     }
 
