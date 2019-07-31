@@ -1,10 +1,10 @@
+use crate::error::CalcError;
+use crate::error::CalcError::*;
+use crate::value::{Integral, Value};
 use decimal::d128;
-use error::CalcError;
-use error::CalcError::*;
 use num::Num;
 use std::fmt;
 use std::iter::Peekable;
-use value::{Integral, Value};
 
 /// Tokens used for parsing an arithmetic expression
 #[derive(Debug, Clone, PartialEq)]
@@ -69,8 +69,8 @@ trait IsOperator {
 impl IsOperator for char {
     fn is_operator(self) -> bool {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>'
-            | '%' | '(' | ')' | '*' | '<' | 'd' => true,
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' | '%'
+            | '(' | ')' | '*' | '<' | 'd' => true,
             _ => false,
         }
     }
@@ -83,8 +83,8 @@ trait CheckOperator {
 impl CheckOperator for char {
     fn check_operator(self) -> OperatorState {
         match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%'
-            | '(' | ')' | 'd' => OperatorState::Complete,
+            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '%' | '('
+            | ')' | 'd' => OperatorState::Complete,
             '*' | '<' | '>' => OperatorState::PotentiallyIncomplete,
             _ => OperatorState::NotAnOperator,
         }
@@ -535,5 +535,4 @@ mod tests {
         ];
         assert_eq!(tokenize(line), Ok(expected));
     }
-
 }

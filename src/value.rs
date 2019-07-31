@@ -1,5 +1,5 @@
+use crate::error::{CalcError, PartialComp};
 use decimal::d128;
-use error::{CalcError, PartialComp};
 use num::{BigInt, BigUint, ToPrimitive, Zero};
 use std::fmt;
 use std::ops::*;
@@ -127,7 +127,6 @@ pub mod ops {
             PartialComp::ToFloat(n.to_string()),
         ))
     }
-
 }
 
 impl Value {
@@ -446,5 +445,4 @@ mod tests {
             assert_eq!(output, expected);
         }
     }
-
 }

@@ -101,7 +101,7 @@ pub fn calc() -> Result<(), RuntimeError> {
                 }
             } else {
                 let stdin = io::stdin();
-                let mut lock = stdin.lock();
+                let lock = stdin.lock();
                 for line in lock.lines() {
                     writeln!(stdout, "{}", eval!(&line?))?;
                 }

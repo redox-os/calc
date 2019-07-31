@@ -1,7 +1,8 @@
-use error::CalcError;
+use crate::error::CalcError;
+use crate::token::*;
+use crate::value::{Value, IR};
+use decimal::d128;
 use rand::Rng;
-use token::*;
-use value::{Value, IR};
 
 const RECURSION_LIMIT: usize = 10;
 
@@ -374,5 +375,4 @@ mod tests {
         let mut env = DefaultEnvironment::new();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
-
 }
