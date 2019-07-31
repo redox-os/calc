@@ -1,7 +1,8 @@
-use error::CalcError;
+use crate::error::CalcError;
+use crate::token::*;
+use crate::value::{Value, IR};
+use decimal::d128;
 use rand::Rng;
-use token::*;
-use value::{Value, IR};
 
 const RECURSION_LIMIT: usize = 10;
 
@@ -25,6 +26,8 @@ pub trait Environment {
     fn add_recursion_level(&mut self);
     fn subtract_recursion_level(&mut self);
     fn get_recursion_level(&self) -> usize;
+
+    fn ans(&self) -> &Option<Value>;
 }
 
 fn d_expr<E>(token_list: &[Token], env: &mut E) -> Result<IR, CalcError>
@@ -209,6 +212,10 @@ where
 {
     if !token_list.is_empty() {
         match token_list[0] {
+            Token::Ans => match env.ans() {
+                Some(v) => Ok(IR::new(v.clone(), 1)),
+                None => Err(CalcError::MissingAns),
+            },
             Token::Number(ref n) => Ok(IR::new(n.clone(), 1)),
             Token::Atom(ref s) => {
                 if let Some(nargs) = env.arity(s) {
@@ -274,11 +281,22 @@ where
 
 pub struct DefaultEnvironment {
     recursion_level: usize,
+    ans: Option<Value>,
 }
 
 impl DefaultEnvironment {
     pub fn new() -> DefaultEnvironment {
-        DefaultEnvironment { recursion_level: 0 }
+        DefaultEnvironment {
+            recursion_level: 0,
+            ans: None,
+        }
+    }
+
+    pub fn with_ans(ans: Option<Value>) -> DefaultEnvironment {
+        DefaultEnvironment {
+            recursion_level: 0,
+            ans,
+        }
     }
 }
 
@@ -321,6 +339,10 @@ impl Environment for DefaultEnvironment {
     fn subtract_recursion_level(&mut self) {
         self.recursion_level -= 1;
     }
+
+    fn ans(&self) -> &Option<Value> {
+        &self.ans
+    }
 }
 
 pub fn parse<E>(tokens: &[Token], env: &mut E) -> Result<Value, CalcError>
@@ -362,6 +384,14 @@ mod tests {
     }
 
     #[test]
+    fn ans_calculation() {
+        let expr = [Token::Ans, Token::Multiply, Token::Number(Value::dec(3))];
+        let expected = Value::dec(12);
+        let mut env = DefaultEnvironment::with_ans(Some(Value::dec(4)));
+        assert_eq!(super::parse(&expr, &mut env), Ok(expected));
+    }
+
+    #[test]
     fn function_binding() {
         let expr = [
             Token::Atom("log".into()),
@@ -374,5 +404,4 @@ mod tests {
         let mut env = DefaultEnvironment::new();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
-
 }

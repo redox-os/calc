@@ -1,3 +1,5 @@
+extern crate test;
+
 use super::eval;
 use test::Bencher;
 

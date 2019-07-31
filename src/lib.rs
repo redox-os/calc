@@ -1,14 +1,5 @@
 #![cfg_attr(test, feature(test))]
 
-#[macro_use]
-extern crate decimal;
-#[macro_use]
-extern crate failure;
-extern crate num;
-extern crate rand;
-#[cfg(test)]
-extern crate test;
-
 #[cfg(test)]
 mod bench;
 
@@ -85,6 +76,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use decimal::d128;
 
     #[test]
     fn basics() {
@@ -164,5 +156,4 @@ mod tests {
             assert_eq!(eval(input), expected);
         }
     }
-
 }

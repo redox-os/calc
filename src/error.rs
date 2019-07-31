@@ -75,6 +75,7 @@ pub enum CalcError {
     WouldTruncate(PartialComp),
     RecursionLimitReached,
     ImpossibleDice,
+    MissingAns,
 }
 
 use CalcError::*;
@@ -109,6 +110,7 @@ impl fmt::Display for CalcError {
             UnmatchedParenthesis => write!(f, "unmatched patenthesis"),
             RecursionLimitReached => write!(f, "recursion limit reached"),
             ImpossibleDice => write!(f, "impossible dice"),
+            MissingAns => write!(f, "no `ans` from a previous computation"),
         }
     }
 }
