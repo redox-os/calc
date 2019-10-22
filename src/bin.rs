@@ -94,7 +94,13 @@ pub fn calc() -> Result<(), RuntimeError> {
                 let mut con = Context::new();
                 let mut ans = None;
                 loop {
-                    let line = con.read_line(PROMPT, &mut |_| {})?;
+                    let line = con.read_line(
+                        PROMPT,
+                        None,
+                        &mut liner::BasicCompleter::new(
+                            Vec::<String>::default(),
+                        ),
+                    )?;
                     match line.trim() {
                         "" => (),
                         "exit" => break,
