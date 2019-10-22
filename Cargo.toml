@@ -30,7 +30,7 @@ atty = "0.2.11"
 clap = "2.33.0"
 decimal = { git = "https://github.com/alkis/decimal.git", default-features = false }
 failure = "0.1.5"
-liner = "0.4.4"
+liner = { git = "https://gitlab.redox-os.org/redox-os/liner" }
 num = "0.2.0"
 rand = "0.6.5"
 
