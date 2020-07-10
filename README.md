@@ -14,7 +14,7 @@
 Add `calc` as a dependency in your `Cargo.toml`:
 ```toml
 [dependencies]
-calculate = "0.5.*"
+calculate = "0.7.*"
 ```
 
 Then make use of the library functions:
@@ -32,7 +32,7 @@ fn main() {
         match line.unwrap().trim() {
             "" => (),
             "exit" => break,
-            s => writeln!(stdout, "{}", eval(s)).unwrap(),
+            s => writeln!(stdout, "{}", eval(s).unwrap()).unwrap(),
         }
     }
 }
