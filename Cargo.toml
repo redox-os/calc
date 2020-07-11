@@ -28,11 +28,11 @@ path = "src/bin.rs"
 [dependencies]
 atty = "0.2.11"
 clap = "2.33.0"
-decimal = { git = "https://github.com/alkis/decimal.git", default-features = false }
+decimal = { version = "2.0.4", default-features = false }
 failure = "0.1.5"
 redox_liner = "0.5.1"
-num = "0.2.0"
-rand = "0.6.5"
+num = "0.3"
+rand = "0.7.0"
 
 [lib]
 name = "calc"
