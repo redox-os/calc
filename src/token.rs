@@ -154,13 +154,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                 chars.next();
                 match chars.peek() {
                     Some(&next_char) if next_char.is_operator() => {
-                       match [c, next_char].operator_type() {
-                           Some(t) => {
-                               tokens.push(t);
-                               chars.next();
-                           },
-                           _=> tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?)
-                       }
+                        match [c, next_char].operator_type() {
+                            Some(t) => {
+                                tokens.push(t);
+                                chars.next();
+                            },
+                            _=> tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?)
+                        }
                     }
                     _ => {
                         tokens.push(
