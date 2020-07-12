@@ -26,13 +26,17 @@ name = "calc"
 path = "src/bin.rs"
 
 [dependencies]
-atty = "0.2.11"
-clap = "2.33.0"
+atty = { version = "0.2.11", optional = true}
+clap = { version = "2.33.0", optional = true}
 decimal = { version = "2.0.4", default-features = false }
 failure = "0.1.5"
-redox_liner = "0.5.1"
+redox_liner =  { version = "0.5.1", optional = true}
 num = "0.3"
 rand = "0.7.0"
+
+[features]
+binary = [ "atty", "clap", "redox_liner" ]
+
 
 [lib]
 name = "calc"
