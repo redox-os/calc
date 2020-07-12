@@ -158,8 +158,11 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                             Some(t) => {
                                 tokens.push(t);
                                 chars.next();
-                            },
-                            _=> tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?)
+                            }
+                            _ => tokens.push(
+                                c.operator_type()
+                                    .ok_or_else(|| InvalidOperator(c))?,
+                            ),
                         }
                     }
                     _ => {
