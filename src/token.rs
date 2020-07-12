@@ -137,8 +137,8 @@ impl OperatorMatch for char {
 /// notation.
 ///
 /// Returns a vector of `Token`s in the infix format, if the supplied
-/// expression is valid. This
-/// vector can then be pased into the `parse` function to be evaluated.
+/// expression is valid. This vector can then be passed into the `parse`
+/// function to be evaluated.
 pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     let mut tokens = Vec::with_capacity(input.len());
     let mut chars = input.chars().peekable();
@@ -154,12 +154,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                 chars.next();
                 match chars.peek() {
                     Some(&next_char) if next_char.is_operator() => {
-                        tokens.push(
-                            [c, next_char]
-                                .operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?,
-                        );
-                        chars.next();
+                       match [c, next_char].operator_type() {
+                           Some(t) => {
+                               tokens.push(t);
+                               chars.next();
+                           },
+                           _=> tokens.push(c.operator_type().ok_or_else(|| InvalidOperator(c))?)
+                       }
                     }
                     _ => {
                         tokens.push(
