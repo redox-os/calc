@@ -1,5 +1,4 @@
 use num::bigint::ParseBigIntError;
-use std::error::Error;
 use std::fmt;
 
 /// Represents a partial computation that can be captured as part of an
@@ -117,7 +116,7 @@ impl fmt::Display for CalcError {
 
 impl From<ParseBigIntError> for CalcError {
     fn from(data: ParseBigIntError) -> CalcError {
-        CalcError::InvalidNumber(data.description().into())
+        CalcError::InvalidNumber(data.to_string().into())
     }
 }
 
