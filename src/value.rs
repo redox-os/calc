@@ -2,7 +2,9 @@ use crate::error::{CalcError, PartialComp};
 use decimal::d128;
 use num::{BigInt, BigUint, ToPrimitive, Zero};
 use std::fmt;
+use std::num::ParseFloatError;
 use std::ops::*;
+use std::str::FromStr;
 
 pub type Integral = BigInt;
 type UIntegral = BigUint;
@@ -149,6 +151,21 @@ impl Value {
         match self {
             Value::Integral(ref n, _) => ops::to_float(n),
             Value::Float(ref n) => Ok(*n),
+        }
+    }
+
+    fn as_f64(&self) -> Result<f64, ParseFloatError> {
+        //Lossy conversion to f64 (TODO: which rounding method ?)
+        f64::from_str(&(self).to_string())
+    }
+
+    pub fn sin(&self) -> Result<d128, CalcError> {
+        //sin  as d128->f64.sin()->d128
+        match d128::from_str(&self.as_f64()?.sin().to_string()) {
+            Ok(v) => Ok(v),
+            _ => {
+                Err(CalcError::InvalidNumber(String::from("sine parse error")))
+            }
         }
     }
 
