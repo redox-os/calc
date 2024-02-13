@@ -235,6 +235,22 @@ impl Value {
         };
         Ok(value)
     }
+
+    /// Computes the natural logarithm of a number
+    pub fn ln(&self) -> Result<Self, CalcError> {
+        match self {
+            Value::Float(n) => Ok(Value::Float(n.ln())),
+            Value::Integral(_, _) => Ok(Value::Float(self.as_float()?.ln())),
+        }
+    }
+
+    /// Computes the logarithm base 10 of a number
+    pub fn log(&self) -> Result<Self, CalcError> {
+        match self {
+            Value::Float(n) => Ok(Value::Float(n.log10())),
+            Value::Integral(_, _) => Ok(Value::Float(self.as_float()?.log10())),
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -568,5 +584,113 @@ mod tests {
         for (output, expected) in cases {
             assert_eq!(output, expected);
         }
+    }
+
+    #[test]
+     fn function_log() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).log().unwrap(),
+                Value::Float(d128::neg_infinity()),
+            ),
+            (
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec).log().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Integral(BigInt::from(10), IntegralFmt::Dec).log().unwrap(),
+                Value::Float(d128!(1)),
+            ),
+            (
+                Value::Integral(BigInt::from(100), IntegralFmt::Dec).log().unwrap(),
+                Value::Float(d128!(2)),
+            ),
+            (
+                Value::Float(d128!(0.0)).log().unwrap(),
+                Value::Float(d128::neg_infinity()),
+            ),
+            (
+                Value::Float(d128!(-0.0)).log().unwrap(),
+                Value::Float(d128::neg_infinity()),
+            ),
+            (
+                Value::Float(d128!(0.1)).log().unwrap(),
+                Value::Float(d128!(-1.0)),
+            ),
+            (
+                Value::Float(d128!(1.0)).log().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(10.0)).log().unwrap(),
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(1000.0)).log().unwrap(),
+                Value::Float(d128!(3.0)),
+            ),
+        ];
+
+        for (output, expected) in cases {
+            assert_eq!(output, expected);
+        }
+
+        assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec).log().unwrap().is_nan());
+        assert!(Value::Float(d128!(-0.1)).log().unwrap().is_nan());
+        assert!(Value::Float(d128!(-1.0)).log().unwrap().is_nan());
+    }
+
+    #[test]
+     fn function_ln() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).ln().unwrap(),
+                Value::Float(d128::neg_infinity()),
+            ),
+            (
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec).ln().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Integral(BigInt::from(2), IntegralFmt::Dec).ln().unwrap(),
+                Value::Float(d128!(0.6931471805599453094172321214581766)),
+            ),
+            (
+                Value::Integral(BigInt::from(7), IntegralFmt::Dec).ln().unwrap(),
+                Value::Float(d128!(1.945910149055313305105352743443180)),
+            ),
+            (
+                Value::Float(d128!(0.0)).ln().unwrap(),
+                Value::Float(d128::neg_infinity()),
+            ),
+            (
+                Value::Float(d128!(-0.0)).ln().unwrap(),
+                Value::Float(d128::neg_infinity()),
+            ),
+            (
+                Value::Float(d128!(0.36787944117144232159552377016146086)).ln().unwrap(), // 1/e
+                Value::Float(d128!(-0.9999999999999999999999999999999999)),
+            ),
+            (
+                Value::Float(d128!(1.0)).ln().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(2.71828182845904523536028747135266249)).ln().unwrap(), // e
+                Value::Float(d128!(0.9999999999999999999999999999999998)),
+            ),
+            (
+                Value::Float(d128!(7.38905609893065022723042746057500781)).ln().unwrap(), // e²
+                Value::Float(d128!(2.0)),
+            ),
+        ];
+
+        for (output, expected) in cases {
+            assert_eq!(output, expected);
+        }
+
+        assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec).ln().unwrap().is_nan());
+        assert!(Value::Float(d128!(-0.1)).ln().unwrap().is_nan());
+        assert!(Value::Float(d128!(-1.0)).ln().unwrap().is_nan());
     }
 }

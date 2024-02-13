@@ -305,6 +305,7 @@ impl Environment for DefaultEnvironment {
         match atom {
             "pi" | "tau" => Some(0),
             "log" => Some(1),
+            "ln" => Some(1),
             _ => None,
         }
     }
@@ -321,9 +322,10 @@ impl Environment for DefaultEnvironment {
             "tau" => Ok(Value::Float(
                 d128!(3.1415926535897932384626433832795028) * d128!(2.0),
             )),
-            "log" => Ok(Value::Float(args[0].as_float()?.log10())),
             // "sin" => Ok(Value::Float(args[0].as_float().sin())),
             // "cos" => Ok(Value::Float(args[0].as_float().cos())),
+            "log" => args[0].log(),
+            "ln" => args[0].ln(),
             // "tan" => Ok(Value::Float(args[0].as_float().tan())),
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
