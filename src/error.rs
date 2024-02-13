@@ -125,3 +125,5 @@ impl From<CalcError> for String {
         format!("{}", data)
     }
 }
+
+impl std::error::Error for CalcError{}
