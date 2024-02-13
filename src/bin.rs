@@ -95,7 +95,7 @@ pub fn calc() -> Result<(), RuntimeError> {
                 let mut ans = None;
                 loop {
                     let line = con.read_line(
-                        PROMPT,
+                        liner::Prompt::from(PROMPT),
                         None,
                         &mut liner::BasicCompleter::new(
                             Vec::<String>::default(),
