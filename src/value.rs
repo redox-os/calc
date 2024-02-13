@@ -74,8 +74,8 @@ pub mod ops {
                 for it in repeat(Zero::zero()).take(left.len() - right.len()) {
                     right.push(it);
                 }
-            },
-            std::cmp::Ordering::Equal => {},
+            }
+            std::cmp::Ordering::Equal => {}
             std::cmp::Ordering::Less => {
                 for it in repeat(Zero::zero()).take(right.len() - left.len()) {
                     left.push(it);
@@ -264,7 +264,7 @@ impl Value {
             Value::Integral(_, _) => Ok(Value::Float(self.as_float()?.log10())),
         }
     }
-    
+
     /// Computes the sine of a number in radians
     pub fn sin(&self) -> Result<Self, CalcError> {
         let float_val: f64 = self.try_into()?;
@@ -348,7 +348,7 @@ impl fmt::Display for Value {
     }
 }
 
-impl Default for Value{
+impl Default for Value {
     fn default() -> Self {
         Value::Float(d128!(0.0))
     }
@@ -359,10 +359,13 @@ impl TryFrom<&Value> for f64 {
 
     fn try_from(v: &Value) -> Result<f64, CalcError> {
         match v {
-            Value::Float(n) => {
-                n.to_string().parse::<f64>().map_err(|err| CalcError::InvalidNumber(err.to_string()))
-            },
-            Value::Integral(n, _) => n.to_f64().ok_or(CalcError::InvalidNumber(n.to_string())),
+            Value::Float(n) => n
+                .to_string()
+                .parse::<f64>()
+                .map_err(|err| CalcError::InvalidNumber(err.to_string())),
+            Value::Integral(n, _) => {
+                n.to_f64().ok_or(CalcError::InvalidNumber(n.to_string()))
+            }
         }
     }
 }
@@ -371,7 +374,8 @@ impl TryFrom<f64> for Value {
     type Error = CalcError;
 
     fn try_from(v: f64) -> Result<Value, CalcError> {
-        let n = d128::from_str(&v.to_string()).map_err(|err| CalcError::InvalidNumber(format!("{:?}", err)))?;
+        let n = d128::from_str(&v.to_string())
+            .map_err(|err| CalcError::InvalidNumber(format!("{:?}", err)))?;
         Ok(Value::Float(n))
     }
 }
@@ -678,7 +682,7 @@ mod tests {
     }
 
     #[test]
-     fn function_abs() {
+    fn function_abs() {
         let cases: Vec<(Value, Value)> = vec![
             (
                 Value::Integral(BigInt::from(0), IntegralFmt::Dec).abs(),
@@ -692,30 +696,12 @@ mod tests {
                 Value::Integral(BigInt::from(-1), IntegralFmt::Dec).abs(),
                 Value::Integral(BigInt::from(1), IntegralFmt::Dec),
             ),
-            (
-                Value::Float(d128!(0)).abs(),
-                Value::Float(d128!(0)),
-            ),
-            (
-                Value::Float(d128!(1.0)).abs(),
-                Value::Float(d128!(1.0)),
-            ),
-            (
-                Value::Float(d128!(0.1)).abs(),
-                Value::Float(d128!(0.1)),
-            ),
-            (
-                Value::Float(d128!(-0.0)).abs(),
-                Value::Float(d128!(0.0)),
-            ),
-            (
-                Value::Float(d128!(-1.0)).abs(),
-                Value::Float(d128!(1.0)),
-            ),
-            (
-                Value::Float(d128!(-0.1)).abs(),
-                Value::Float(d128!(0.1)),
-            ),
+            (Value::Float(d128!(0)).abs(), Value::Float(d128!(0))),
+            (Value::Float(d128!(1.0)).abs(), Value::Float(d128!(1.0))),
+            (Value::Float(d128!(0.1)).abs(), Value::Float(d128!(0.1))),
+            (Value::Float(d128!(-0.0)).abs(), Value::Float(d128!(0.0))),
+            (Value::Float(d128!(-1.0)).abs(), Value::Float(d128!(1.0))),
+            (Value::Float(d128!(-0.1)).abs(), Value::Float(d128!(0.1))),
         ];
 
         for (output, expected) in cases {
@@ -724,22 +710,30 @@ mod tests {
     }
 
     #[test]
-     fn function_log() {
+    fn function_log() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).log().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .log()
+                    .unwrap(),
                 Value::Float(d128::neg_infinity()),
             ),
             (
-                Value::Integral(BigInt::from(1), IntegralFmt::Dec).log().unwrap(),
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec)
+                    .log()
+                    .unwrap(),
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Integral(BigInt::from(10), IntegralFmt::Dec).log().unwrap(),
+                Value::Integral(BigInt::from(10), IntegralFmt::Dec)
+                    .log()
+                    .unwrap(),
                 Value::Float(d128!(1)),
             ),
             (
-                Value::Integral(BigInt::from(100), IntegralFmt::Dec).log().unwrap(),
+                Value::Integral(BigInt::from(100), IntegralFmt::Dec)
+                    .log()
+                    .unwrap(),
                 Value::Float(d128!(2)),
             ),
             (
@@ -772,28 +766,39 @@ mod tests {
             assert_eq!(output, expected);
         }
 
-        assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec).log().unwrap().is_nan());
+        assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec)
+            .log()
+            .unwrap()
+            .is_nan());
         assert!(Value::Float(d128!(-0.1)).log().unwrap().is_nan());
         assert!(Value::Float(d128!(-1.0)).log().unwrap().is_nan());
     }
 
     #[test]
-     fn function_ln() {
+    fn function_ln() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).ln().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .ln()
+                    .unwrap(),
                 Value::Float(d128::neg_infinity()),
             ),
             (
-                Value::Integral(BigInt::from(1), IntegralFmt::Dec).ln().unwrap(),
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec)
+                    .ln()
+                    .unwrap(),
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Integral(BigInt::from(2), IntegralFmt::Dec).ln().unwrap(),
+                Value::Integral(BigInt::from(2), IntegralFmt::Dec)
+                    .ln()
+                    .unwrap(),
                 Value::Float(d128!(0.6931471805599453094172321214581766)),
             ),
             (
-                Value::Integral(BigInt::from(7), IntegralFmt::Dec).ln().unwrap(),
+                Value::Integral(BigInt::from(7), IntegralFmt::Dec)
+                    .ln()
+                    .unwrap(),
                 Value::Float(d128!(1.945910149055313305105352743443180)),
             ),
             (
@@ -805,7 +810,9 @@ mod tests {
                 Value::Float(d128::neg_infinity()),
             ),
             (
-                Value::Float(d128!(0.36787944117144232159552377016146086)).ln().unwrap(), // 1/e
+                Value::Float(d128!(0.36787944117144232159552377016146086))
+                    .ln()
+                    .unwrap(), // 1/e
                 Value::Float(d128!(-0.9999999999999999999999999999999999)),
             ),
             (
@@ -813,11 +820,15 @@ mod tests {
                 Value::Float(d128!(0.0)),
             ),
             (
-                Value::Float(d128!(2.71828182845904523536028747135266249)).ln().unwrap(), // e
+                Value::Float(d128!(2.71828182845904523536028747135266249))
+                    .ln()
+                    .unwrap(), // e
                 Value::Float(d128!(0.9999999999999999999999999999999998)),
             ),
             (
-                Value::Float(d128!(7.38905609893065022723042746057500781)).ln().unwrap(), // e²
+                Value::Float(d128!(7.38905609893065022723042746057500781))
+                    .ln()
+                    .unwrap(), // e²
                 Value::Float(d128!(2.0)),
             ),
         ];
@@ -826,16 +837,21 @@ mod tests {
             assert_eq!(output, expected);
         }
 
-        assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec).ln().unwrap().is_nan());
+        assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec)
+            .ln()
+            .unwrap()
+            .is_nan());
         assert!(Value::Float(d128!(-0.1)).ln().unwrap().is_nan());
         assert!(Value::Float(d128!(-1.0)).ln().unwrap().is_nan());
     }
 
     #[test]
-     fn function_sin() {
+    fn function_sin() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).sin().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .sin()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -843,50 +859,66 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).sin().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .sin()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.5)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).sin().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .sin()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.7071067811865475)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).sin().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .sin()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(0.8660254037844387)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).sin().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .sin()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(1.0)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).sin().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .sin()
+                    .unwrap(), // pi
                 Value::Float(d128!(0.0)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).sin().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .sin()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(0.0)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).sin().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .sin()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-0.7071067811865475)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_cos() {
+    fn function_cos() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).cos().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .cos()
+                    .unwrap(),
                 Value::Float(d128!(1.0)),
             ),
             (
@@ -894,49 +926,65 @@ mod tests {
                 Value::Float(d128!(1)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).cos().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .cos()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.8660254037844387)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).cos().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .cos()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.7071067811865475)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).cos().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .cos()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(0.5)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).cos().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .cos()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(0.0)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).cos().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .cos()
+                    .unwrap(), // pi
                 Value::Float(d128!(-1.0)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).cos().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .cos()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(1.0)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).cos().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .cos()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(0.7071067811865475)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_tan() {
+    fn function_tan() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).tan().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .tan()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -944,52 +992,67 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).tan().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .tan()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.5773502691896257)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).tan().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .tan()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(1.0)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).tan().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .tan()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(1.73205080756887729)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).tan().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .tan()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(16331239353195370)),
-
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).tan().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .tan()
+                    .unwrap(), // pi
                 Value::Float(d128!(0.0)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).tan().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .tan()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(0.0)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).tan().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .tan()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-1.0)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             print!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             println!(", verification: {}", &verification);
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_asin() {
+    fn function_asin() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).asin().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .asin()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -997,39 +1060,59 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).asin().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .asin()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.5510695830994464)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).asin().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .asin()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.9033391107665127)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).asin().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .asin()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-0.9033391107665127)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
 
-        assert!(Value::Float(d128!(1.04719755119659774615421446109316762)).asin().unwrap().is_nan()); // pi/3
-        assert!(Value::Float(d128!(1.57079632679489661923132169163975144)).asin().unwrap().is_nan()); // pi/2
-        assert!(Value::Float(d128!(3.14159265358979323846264338327950288)).asin().unwrap().is_nan()); // pi
-        assert!(Value::Float(d128!(6.28318530717958647692528676655900576)).asin().unwrap().is_nan()); // 2*pi
+        assert!(Value::Float(d128!(1.04719755119659774615421446109316762))
+            .asin()
+            .unwrap()
+            .is_nan()); // pi/3
+        assert!(Value::Float(d128!(1.57079632679489661923132169163975144))
+            .asin()
+            .unwrap()
+            .is_nan()); // pi/2
+        assert!(Value::Float(d128!(3.14159265358979323846264338327950288))
+            .asin()
+            .unwrap()
+            .is_nan()); // pi
+        assert!(Value::Float(d128!(6.28318530717958647692528676655900576))
+            .asin()
+            .unwrap()
+            .is_nan()); // 2*pi
     }
 
     #[test]
-     fn function_acos() {
+    fn function_acos() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).acos().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .acos()
+                    .unwrap(),
                 Value::Float(d128!(1.5707963267948966)),
             ),
             (
@@ -1037,39 +1120,59 @@ mod tests {
                 Value::Float(d128!(1.5707963267948966)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).acos().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .acos()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(1.0197267436954500)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).acos().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .acos()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.6674572160283840)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).acos().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .acos()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(2.4741354375614100)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
 
-        assert!(Value::Float(d128!(1.04719755119659774615421446109316762)).acos().unwrap().is_nan()); // pi/3
-        assert!(Value::Float(d128!(1.57079632679489661923132169163975144)).acos().unwrap().is_nan()); // pi/2
-        assert!(Value::Float(d128!(3.14159265358979323846264338327950288)).acos().unwrap().is_nan()); // pi
-        assert!(Value::Float(d128!(6.28318530717958647692528676655900576)).acos().unwrap().is_nan()); // 2*pi
+        assert!(Value::Float(d128!(1.04719755119659774615421446109316762))
+            .acos()
+            .unwrap()
+            .is_nan()); // pi/3
+        assert!(Value::Float(d128!(1.57079632679489661923132169163975144))
+            .acos()
+            .unwrap()
+            .is_nan()); // pi/2
+        assert!(Value::Float(d128!(3.14159265358979323846264338327950288))
+            .acos()
+            .unwrap()
+            .is_nan()); // pi
+        assert!(Value::Float(d128!(6.28318530717958647692528676655900576))
+            .acos()
+            .unwrap()
+            .is_nan()); // 2*pi
     }
 
     #[test]
-     fn function_atan() {
+    fn function_atan() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).atan().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .atan()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -1077,50 +1180,66 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).atan().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .atan()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.4823479071010250)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).atan().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .atan()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.6657737500283540)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).atan().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .atan()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(0.8084487926300220)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).atan().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .atan()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(1.0038848218538872)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).atan().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .atan()
+                    .unwrap(), // pi
                 Value::Float(d128!(1.2626272556789118)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).atan().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .atan()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(1.4129651365067377)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).atan().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .atan()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-0.6657737500283540)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_sinh() {
+    fn function_sinh() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).sinh().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .sinh()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -1128,49 +1247,65 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).sinh().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .sinh()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.5478534738880398)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).sinh().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .sinh()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.8686709614860096)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).sinh().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .sinh()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(1.2493670505239753)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).sinh().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .sinh()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(2.3012989023072949)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).sinh().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .sinh()
+                    .unwrap(), // pi
                 Value::Float(d128!(11.5487393572577484)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).sinh().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .sinh()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(267.74489404101644)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).sinh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .sinh()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-0.8686709614860096)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_cosh() {
+    fn function_cosh() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).cosh().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .cosh()
+                    .unwrap(),
                 Value::Float(d128!(1.0)),
             ),
             (
@@ -1178,50 +1313,66 @@ mod tests {
                 Value::Float(d128!(1)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).cosh().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .cosh()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(1.1402383210764289)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).cosh().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .cosh()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(1.3246090892520057)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).cosh().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .cosh()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(1.6002868577023863)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).cosh().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .cosh()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(2.5091784786580567)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).cosh().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .cosh()
+                    .unwrap(), // pi
                 Value::Float(d128!(11.591953275521519)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).cosh().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .cosh()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(267.7467614837482)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).cosh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .cosh()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(1.3246090892520057)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_tanh() {
+    fn function_tanh() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).tanh().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .tanh()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -1229,50 +1380,66 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).tanh().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .tanh()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.4804727781564516)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).tanh().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .tanh()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.6557942026326724)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).tanh().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .tanh()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(0.7807144353592678)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).tanh().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .tanh()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(0.9171523356672744)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).tanh().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .tanh()
+                    .unwrap(), // pi
                 Value::Float(d128!(0.99627207622075)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).tanh().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .tanh()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(0.9999930253396107)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).tanh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .tanh()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-0.6557942026326724)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_asinh() {
+    fn function_asinh() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).asinh().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .asinh()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -1280,62 +1447,84 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).asinh().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .asinh()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.5022189850346117)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).asinh().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .asinh()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(0.7212254887267798)),
             ),
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).asinh().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .asinh()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(0.9143566553928861)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).asinh().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .asinh()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(1.233403117511217)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).asinh().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .asinh()
+                    .unwrap(), // pi
                 Value::Float(d128!(1.8622957433108482)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).asinh().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .asinh()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(2.537297501373361)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).asinh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .asinh()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-0.7212254887267798)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
     }
 
     #[test]
-     fn function_acosh() {
+    fn function_acosh() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Float(d128!(1.047197551196597746154214461093167628)).acosh().unwrap(), // pi/3
+                Value::Float(d128!(1.047197551196597746154214461093167628))
+                    .acosh()
+                    .unwrap(), // pi/3
                 Value::Float(d128!(0.30604210861326614)),
             ),
             (
-                Value::Float(d128!(1.57079632679489661923132169163975144)).acosh().unwrap(), // pi/2
+                Value::Float(d128!(1.57079632679489661923132169163975144))
+                    .acosh()
+                    .unwrap(), // pi/2
                 Value::Float(d128!(1.0232274785475506)),
             ),
             (
-                Value::Float(d128!(3.14159265358979323846264338327950288)).acosh().unwrap(), // pi
+                Value::Float(d128!(3.14159265358979323846264338327950288))
+                    .acosh()
+                    .unwrap(), // pi
                 Value::Float(d128!(1.8115262724608532)),
             ),
             (
-                Value::Float(d128!(6.28318530717958647692528676655900576)).acosh().unwrap(), // 2*pi
+                Value::Float(d128!(6.28318530717958647692528676655900576))
+                    .acosh()
+                    .unwrap(), // 2*pi
                 Value::Float(d128!(2.524630659933467)),
             ),
         ];
@@ -1344,22 +1533,37 @@ mod tests {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
 
-        assert!(Value::Integral(BigInt::from(0), IntegralFmt::Dec).acosh().unwrap().is_nan());
-        assert!(Value::Float(d128!(0.0)).acosh().unwrap().is_nan()); 
-        assert!(Value::Float(d128!(0.52359877559829887307710723054658381)).acosh().unwrap().is_nan()); // pi/6
-        assert!(Value::Float(d128!(0.785398163397448309615660845819875721)).acosh().unwrap().is_nan()); // pi/4
-        assert!(Value::Float(d128!(-0.785398163397448309615660845819875721)).acosh().unwrap().is_nan()); // -pi/4
+        assert!(Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+            .acosh()
+            .unwrap()
+            .is_nan());
+        assert!(Value::Float(d128!(0.0)).acosh().unwrap().is_nan());
+        assert!(Value::Float(d128!(0.52359877559829887307710723054658381))
+            .acosh()
+            .unwrap()
+            .is_nan()); // pi/6
+        assert!(Value::Float(d128!(0.785398163397448309615660845819875721))
+            .acosh()
+            .unwrap()
+            .is_nan()); // pi/4
+        assert!(Value::Float(d128!(-0.785398163397448309615660845819875721))
+            .acosh()
+            .unwrap()
+            .is_nan()); // -pi/4
     }
 
     #[test]
-     fn function_atanh() {
+    fn function_atanh() {
         let cases: Vec<(Value, Value)> = vec![
             (
-                Value::Integral(BigInt::from(0), IntegralFmt::Dec).atanh().unwrap(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec)
+                    .atanh()
+                    .unwrap(),
                 Value::Float(d128!(0.0)),
             ),
             (
@@ -1367,31 +1571,49 @@ mod tests {
                 Value::Float(d128!(0)),
             ),
             (
-                Value::Float(d128!(0.52359877559829887307710723054658381)).atanh().unwrap(), // pi/6
+                Value::Float(d128!(0.52359877559829887307710723054658381))
+                    .atanh()
+                    .unwrap(), // pi/6
                 Value::Float(d128!(0.5812850116947232)),
             ),
             (
-                Value::Float(d128!(0.785398163397448309615660845819875721)).atanh().unwrap(), // pi/4
+                Value::Float(d128!(0.785398163397448309615660845819875721))
+                    .atanh()
+                    .unwrap(), // pi/4
                 Value::Float(d128!(1.0593061708232432)),
             ),
             (
-                Value::Float(d128!(-0.785398163397448309615660845819875721)).atanh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.785398163397448309615660845819875721))
+                    .atanh()
+                    .unwrap(), // -pi/4
                 Value::Float(d128!(-1.0593061708232432)),
             ),
-            
         ];
 
         for (output, expected) in cases {
             println!("output: {}, expected: {}", &output, &expected);
             let diff: Value = (output - expected).unwrap().abs();
             let delta: Value = Value::Float(d128!(1e-15));
-            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            let verification =
+                diff.as_float().unwrap() < delta.as_float().unwrap();
             assert!(verification);
         }
 
-        assert!(Value::Float(d128!(1.047197551196597746154214461093167628)).atanh().unwrap().is_nan()); // pi/6
-        assert!(Value::Float(d128!(1.57079632679489661923132169163975144)).atanh().unwrap().is_nan()); // pi/6
-        assert!(Value::Float(d128!(3.14159265358979323846264338327950288)).atanh().unwrap().is_nan()); // pi/6
-        assert!(Value::Float(d128!(6.28318530717958647692528676655900576)).atanh().unwrap().is_nan()); // pi/6
+        assert!(Value::Float(d128!(1.047197551196597746154214461093167628))
+            .atanh()
+            .unwrap()
+            .is_nan()); // pi/6
+        assert!(Value::Float(d128!(1.57079632679489661923132169163975144))
+            .atanh()
+            .unwrap()
+            .is_nan()); // pi/6
+        assert!(Value::Float(d128!(3.14159265358979323846264338327950288))
+            .atanh()
+            .unwrap()
+            .is_nan()); // pi/6
+        assert!(Value::Float(d128!(6.28318530717958647692528676655900576))
+            .atanh()
+            .unwrap()
+            .is_nan()); // pi/6
     }
 }

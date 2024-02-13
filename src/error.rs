@@ -126,4 +126,4 @@ impl From<CalcError> for String {
     }
 }
 
-impl std::error::Error for CalcError{}
+impl std::error::Error for CalcError {}

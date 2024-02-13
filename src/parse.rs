@@ -329,7 +329,9 @@ impl Environment for DefaultEnvironment {
             "tau" => Ok(Value::Float(
                 d128!(3.14159265358979323846264338327950288) * d128!(2.0),
             )),
-            "e" => Ok(Value::Float(d128!(2.71828182845904523536028747135266249))),
+            "e" => {
+                Ok(Value::Float(d128!(2.71828182845904523536028747135266249)))
+            }
             "log" => args[0].log(),
             "ln" => args[0].ln(),
             "abs" => Ok(args[0].abs()),

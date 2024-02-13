@@ -70,8 +70,24 @@ trait IsOperator {
 
 impl IsOperator for char {
     fn is_operator(&self) -> bool {
-        matches!(self, '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' | '%'
-            | '(' | ')' | '*' | '<' | 'd')
+        matches!(
+            self,
+            '+' | '-'
+                | '/'
+                | '^'
+                | '²'
+                | '³'
+                | '&'
+                | '|'
+                | '~'
+                | '>'
+                | '%'
+                | '('
+                | ')'
+                | '*'
+                | '<'
+                | 'd'
+        )
     }
 }
 
@@ -143,8 +159,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     while let Some(&c) = chars.peek() {
         match c.check_operator() {
             OperatorState::Complete => {
-                tokens
-                    .push(c.operator_type().ok_or(InvalidOperator(c))?);
+                tokens.push(c.operator_type().ok_or(InvalidOperator(c))?);
                 chars.next();
             }
             OperatorState::PotentiallyIncomplete => {
@@ -159,10 +174,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                         chars.next();
                     }
                     _ => {
-                        tokens.push(
-                            c.operator_type()
-                                .ok_or(InvalidOperator(c))?,
-                        );
+                        tokens
+                            .push(c.operator_type().ok_or(InvalidOperator(c))?);
                     }
                 }
             }
@@ -235,8 +248,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
         while let Some(&c) = chars.peek() {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    let token =
-                        c.operator_type().ok_or(InvalidOperator(c))?;
+                    let token = c.operator_type().ok_or(InvalidOperator(c))?;
                     if token != Token::OpenParen && token != Token::CloseParen {
                         operators.push(token);
                     }
@@ -257,9 +269,8 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                             chars.next();
                         }
                         _ => {
-                            let token = c
-                                .operator_type()
-                                .ok_or(InvalidOperator(c))?;
+                            let token =
+                                c.operator_type().ok_or(InvalidOperator(c))?;
                             if token != Token::OpenParen
                                 && token != Token::CloseParen
                             {
