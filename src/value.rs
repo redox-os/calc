@@ -236,6 +236,15 @@ impl Value {
         Ok(value)
     }
 
+    /// Computes the absolute value of a number
+    pub fn abs(&self) -> Self {
+        use num::Signed;
+        match self {
+            Value::Float(n) => Value::Float(n.abs()),
+            Value::Integral(n, t) => Value::Integral(Signed::abs(n), *t),
+        }
+    }
+
     /// Computes the natural logarithm of a number
     pub fn ln(&self) -> Result<Self, CalcError> {
         match self {
@@ -584,6 +593,52 @@ mod tests {
             (
                 (&Value::Float(d128!(-179769313486231570000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000))).try_into().unwrap(),
                 f64::MIN,
+            ),
+        ];
+
+        for (output, expected) in cases {
+            assert_eq!(output, expected);
+        }
+    }
+
+    #[test]
+     fn function_abs() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).abs(),
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec),
+            ),
+            (
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec).abs(),
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec),
+            ),
+            (
+                Value::Integral(BigInt::from(-1), IntegralFmt::Dec).abs(),
+                Value::Integral(BigInt::from(1), IntegralFmt::Dec),
+            ),
+            (
+                Value::Float(d128!(0)).abs(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(1.0)).abs(),
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(0.1)).abs(),
+                Value::Float(d128!(0.1)),
+            ),
+            (
+                Value::Float(d128!(-0.0)).abs(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(-1.0)).abs(),
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(-0.1)).abs(),
+                Value::Float(d128!(0.1)),
             ),
         ];
 

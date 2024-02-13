@@ -306,6 +306,7 @@ impl Environment for DefaultEnvironment {
             "pi" | "tau" | "e" => Some(0),
             "log" => Some(1),
             "ln" => Some(1),
+            "abs" => Some(1),
             _ => None,
         }
     }
@@ -327,6 +328,7 @@ impl Environment for DefaultEnvironment {
             "e" => Ok(Value::Float(d128!(2.71828182845904523536028747135266249))),
             "log" => args[0].log(),
             "ln" => args[0].ln(),
+            "abs" => Ok(args[0].abs()),
             // "tan" => Ok(Value::Float(args[0].as_float().tan())),
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
