@@ -260,6 +260,78 @@ impl Value {
             Value::Integral(_, _) => Ok(Value::Float(self.as_float()?.log10())),
         }
     }
+    
+    /// Computes the sine of a number in radians
+    pub fn sin(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.sin().try_into()
+    }
+
+    /// Computes the cosine of a number in radians
+    pub fn cos(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.cos().try_into()
+    }
+
+    /// Computes the tangent of a number in radians
+    pub fn tan(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.tan().try_into()
+    }
+
+    /// Computes the arc sine of a number in radians
+    pub fn asin(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.asin().try_into()
+    }
+
+    /// Computes the arc cosine of a number in radians
+    pub fn acos(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.acos().try_into()
+    }
+
+    /// Computes the arc tanget of a number in radians
+    pub fn atan(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.atan().try_into()
+    }
+
+    /// Computes the hyperbolic sine of a number in radians
+    pub fn sinh(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.sinh().try_into()
+    }
+
+    /// Computes the hyperbolic cosine of a number in radians
+    pub fn cosh(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.cosh().try_into()
+    }
+
+    /// Computes the hyperbolic tangent of a number in radians
+    pub fn tanh(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.tanh().try_into()
+    }
+
+    /// Computes the inverse hyperbolic sine of a number in radians
+    pub fn asinh(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.asinh().try_into()
+    }
+
+    /// Computes the inverse hyperbolic cosine of a number in radians
+    pub fn acosh(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.acosh().try_into()
+    }
+
+    /// Computes the inverse hyperbolic tanget of a number in radians
+    pub fn atanh(&self) -> Result<Self, CalcError> {
+        let float_val: f64 = self.try_into()?;
+        float_val.atanh().try_into()
+    }
 }
 
 impl fmt::Display for Value {
@@ -753,5 +825,569 @@ mod tests {
         assert!(Value::Integral(BigInt::from(-1), IntegralFmt::Dec).ln().unwrap().is_nan());
         assert!(Value::Float(d128!(-0.1)).ln().unwrap().is_nan());
         assert!(Value::Float(d128!(-1.0)).ln().unwrap().is_nan());
+    }
+
+    #[test]
+     fn function_sin() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).sin().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).sin().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).sin().unwrap(), // pi/6
+                Value::Float(d128!(0.5)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).sin().unwrap(), // pi/4
+                Value::Float(d128!(0.7071067811865475)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).sin().unwrap(), // pi/3
+                Value::Float(d128!(0.8660254037844387)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).sin().unwrap(), // pi/2
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).sin().unwrap(), // pi
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).sin().unwrap(), // 2*pi
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).sin().unwrap(), // -pi/4
+                Value::Float(d128!(-0.7071067811865475)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_cos() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).cos().unwrap(),
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(0)).cos().unwrap(),
+                Value::Float(d128!(1)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).cos().unwrap(), // pi/6
+                Value::Float(d128!(0.8660254037844387)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).cos().unwrap(), // pi/4
+                Value::Float(d128!(0.7071067811865475)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).cos().unwrap(), // pi/3
+                Value::Float(d128!(0.5)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).cos().unwrap(), // pi/2
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).cos().unwrap(), // pi
+                Value::Float(d128!(-1.0)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).cos().unwrap(), // 2*pi
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).cos().unwrap(), // -pi/4
+                Value::Float(d128!(0.7071067811865475)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_tan() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).tan().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).tan().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).tan().unwrap(), // pi/6
+                Value::Float(d128!(0.5773502691896257)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).tan().unwrap(), // pi/4
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).tan().unwrap(), // pi/3
+                Value::Float(d128!(1.73205080756887729)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).tan().unwrap(), // pi/2
+                Value::Float(d128!(16331239353195370)),
+
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).tan().unwrap(), // pi
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).tan().unwrap(), // 2*pi
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).tan().unwrap(), // -pi/4
+                Value::Float(d128!(-1.0)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            print!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            println!(", verification: {}", &verification);
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_asin() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).asin().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).asin().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).asin().unwrap(), // pi/6
+                Value::Float(d128!(0.5510695830994464)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).asin().unwrap(), // pi/4
+                Value::Float(d128!(0.9033391107665127)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).asin().unwrap(), // -pi/4
+                Value::Float(d128!(-0.9033391107665127)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+
+        assert!(Value::Float(d128!(1.04719755119659774615421446109316762)).asin().unwrap().is_nan()); // pi/3
+        assert!(Value::Float(d128!(1.57079632679489661923132169163975144)).asin().unwrap().is_nan()); // pi/2
+        assert!(Value::Float(d128!(3.14159265358979323846264338327950288)).asin().unwrap().is_nan()); // pi
+        assert!(Value::Float(d128!(6.28318530717958647692528676655900576)).asin().unwrap().is_nan()); // 2*pi
+    }
+
+    #[test]
+     fn function_acos() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).acos().unwrap(),
+                Value::Float(d128!(1.5707963267948966)),
+            ),
+            (
+                Value::Float(d128!(0)).acos().unwrap(),
+                Value::Float(d128!(1.5707963267948966)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).acos().unwrap(), // pi/6
+                Value::Float(d128!(1.0197267436954500)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).acos().unwrap(), // pi/4
+                Value::Float(d128!(0.6674572160283840)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).acos().unwrap(), // -pi/4
+                Value::Float(d128!(2.4741354375614100)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+
+        assert!(Value::Float(d128!(1.04719755119659774615421446109316762)).acos().unwrap().is_nan()); // pi/3
+        assert!(Value::Float(d128!(1.57079632679489661923132169163975144)).acos().unwrap().is_nan()); // pi/2
+        assert!(Value::Float(d128!(3.14159265358979323846264338327950288)).acos().unwrap().is_nan()); // pi
+        assert!(Value::Float(d128!(6.28318530717958647692528676655900576)).acos().unwrap().is_nan()); // 2*pi
+    }
+
+    #[test]
+     fn function_atan() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).atan().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).atan().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).atan().unwrap(), // pi/6
+                Value::Float(d128!(0.4823479071010250)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).atan().unwrap(), // pi/4
+                Value::Float(d128!(0.6657737500283540)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).atan().unwrap(), // pi/3
+                Value::Float(d128!(0.8084487926300220)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).atan().unwrap(), // pi/2
+                Value::Float(d128!(1.0038848218538872)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).atan().unwrap(), // pi
+                Value::Float(d128!(1.2626272556789118)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).atan().unwrap(), // 2*pi
+                Value::Float(d128!(1.4129651365067377)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).atan().unwrap(), // -pi/4
+                Value::Float(d128!(-0.6657737500283540)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_sinh() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).sinh().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).sinh().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).sinh().unwrap(), // pi/6
+                Value::Float(d128!(0.5478534738880398)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).sinh().unwrap(), // pi/4
+                Value::Float(d128!(0.8686709614860096)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).sinh().unwrap(), // pi/3
+                Value::Float(d128!(1.2493670505239753)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).sinh().unwrap(), // pi/2
+                Value::Float(d128!(2.3012989023072949)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).sinh().unwrap(), // pi
+                Value::Float(d128!(11.5487393572577484)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).sinh().unwrap(), // 2*pi
+                Value::Float(d128!(267.74489404101644)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).sinh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.8686709614860096)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_cosh() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).cosh().unwrap(),
+                Value::Float(d128!(1.0)),
+            ),
+            (
+                Value::Float(d128!(0)).cosh().unwrap(),
+                Value::Float(d128!(1)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).cosh().unwrap(), // pi/6
+                Value::Float(d128!(1.1402383210764289)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).cosh().unwrap(), // pi/4
+                Value::Float(d128!(1.3246090892520057)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).cosh().unwrap(), // pi/3
+                Value::Float(d128!(1.6002868577023863)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).cosh().unwrap(), // pi/2
+                Value::Float(d128!(2.5091784786580567)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).cosh().unwrap(), // pi
+                Value::Float(d128!(11.591953275521519)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).cosh().unwrap(), // 2*pi
+                Value::Float(d128!(267.7467614837482)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).cosh().unwrap(), // -pi/4
+                Value::Float(d128!(1.3246090892520057)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_tanh() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).tanh().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).tanh().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).tanh().unwrap(), // pi/6
+                Value::Float(d128!(0.4804727781564516)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).tanh().unwrap(), // pi/4
+                Value::Float(d128!(0.6557942026326724)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).tanh().unwrap(), // pi/3
+                Value::Float(d128!(0.7807144353592678)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).tanh().unwrap(), // pi/2
+                Value::Float(d128!(0.9171523356672744)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).tanh().unwrap(), // pi
+                Value::Float(d128!(0.99627207622075)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).tanh().unwrap(), // 2*pi
+                Value::Float(d128!(0.9999930253396107)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).tanh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.6557942026326724)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_asinh() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).asinh().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).asinh().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).asinh().unwrap(), // pi/6
+                Value::Float(d128!(0.5022189850346117)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).asinh().unwrap(), // pi/4
+                Value::Float(d128!(0.7212254887267798)),
+            ),
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).asinh().unwrap(), // pi/3
+                Value::Float(d128!(0.9143566553928861)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).asinh().unwrap(), // pi/2
+                Value::Float(d128!(1.233403117511217)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).asinh().unwrap(), // pi
+                Value::Float(d128!(1.8622957433108482)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).asinh().unwrap(), // 2*pi
+                Value::Float(d128!(2.537297501373361)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).asinh().unwrap(), // -pi/4
+                Value::Float(d128!(-0.7212254887267798)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+    }
+
+    #[test]
+     fn function_acosh() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Float(d128!(1.047197551196597746154214461093167628)).acosh().unwrap(), // pi/3
+                Value::Float(d128!(0.30604210861326614)),
+            ),
+            (
+                Value::Float(d128!(1.57079632679489661923132169163975144)).acosh().unwrap(), // pi/2
+                Value::Float(d128!(1.0232274785475506)),
+            ),
+            (
+                Value::Float(d128!(3.14159265358979323846264338327950288)).acosh().unwrap(), // pi
+                Value::Float(d128!(1.8115262724608532)),
+            ),
+            (
+                Value::Float(d128!(6.28318530717958647692528676655900576)).acosh().unwrap(), // 2*pi
+                Value::Float(d128!(2.524630659933467)),
+            ),
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+
+        assert!(Value::Integral(BigInt::from(0), IntegralFmt::Dec).acosh().unwrap().is_nan());
+        assert!(Value::Float(d128!(0.0)).acosh().unwrap().is_nan()); 
+        assert!(Value::Float(d128!(0.52359877559829887307710723054658381)).acosh().unwrap().is_nan()); // pi/6
+        assert!(Value::Float(d128!(0.785398163397448309615660845819875721)).acosh().unwrap().is_nan()); // pi/4
+        assert!(Value::Float(d128!(-0.785398163397448309615660845819875721)).acosh().unwrap().is_nan()); // -pi/4
+    }
+
+    #[test]
+     fn function_atanh() {
+        let cases: Vec<(Value, Value)> = vec![
+            (
+                Value::Integral(BigInt::from(0), IntegralFmt::Dec).atanh().unwrap(),
+                Value::Float(d128!(0.0)),
+            ),
+            (
+                Value::Float(d128!(0)).atanh().unwrap(),
+                Value::Float(d128!(0)),
+            ),
+            (
+                Value::Float(d128!(0.52359877559829887307710723054658381)).atanh().unwrap(), // pi/6
+                Value::Float(d128!(0.5812850116947232)),
+            ),
+            (
+                Value::Float(d128!(0.785398163397448309615660845819875721)).atanh().unwrap(), // pi/4
+                Value::Float(d128!(1.0593061708232432)),
+            ),
+            (
+                Value::Float(d128!(-0.785398163397448309615660845819875721)).atanh().unwrap(), // -pi/4
+                Value::Float(d128!(-1.0593061708232432)),
+            ),
+            
+        ];
+
+        for (output, expected) in cases {
+            println!("output: {}, expected: {}", &output, &expected);
+            let diff: Value = (output - expected).unwrap().abs();
+            let delta: Value = Value::Float(d128!(1e-15));
+            let verification = diff.as_float().unwrap() < delta.as_float().unwrap();
+            assert!(verification);
+        }
+
+        assert!(Value::Float(d128!(1.047197551196597746154214461093167628)).atanh().unwrap().is_nan()); // pi/6
+        assert!(Value::Float(d128!(1.57079632679489661923132169163975144)).atanh().unwrap().is_nan()); // pi/6
+        assert!(Value::Float(d128!(3.14159265358979323846264338327950288)).atanh().unwrap().is_nan()); // pi/6
+        assert!(Value::Float(d128!(6.28318530717958647692528676655900576)).atanh().unwrap().is_nan()); // pi/6
     }
 }
