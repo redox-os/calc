@@ -145,6 +145,15 @@ impl Value {
         }
     }
 
+    // Check if Value is Not a Number
+    pub fn is_nan(&self) -> bool {
+        match self {
+            // Integral is never NaN
+            Value::Integral(_, _) => false,
+            Value::Float(ref f) => f.is_nan(),
+        }
+    }
+
     pub fn as_float(&self) -> Result<d128, CalcError> {
         match self {
             Value::Integral(ref n, _) => ops::to_float(n),
