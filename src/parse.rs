@@ -303,7 +303,7 @@ impl DefaultEnvironment {
 impl Environment for DefaultEnvironment {
     fn arity(&self, atom: &str) -> Option<usize> {
         match atom {
-            "pi" | "tau" => Some(0),
+            "pi" | "tau" | "e" => Some(0),
             "log" => Some(1),
             "ln" => Some(1),
             _ => None,
@@ -317,13 +317,14 @@ impl Environment for DefaultEnvironment {
     ) -> Result<Value, CalcError> {
         match atom {
             "pi" => {
-                Ok(Value::Float(d128!(3.1415926535897932384626433832795028)))
+                Ok(Value::Float(d128!(3.14159265358979323846264338327950288)))
             }
             "tau" => Ok(Value::Float(
-                d128!(3.1415926535897932384626433832795028) * d128!(2.0),
+                d128!(3.14159265358979323846264338327950288) * d128!(2.0),
             )),
             // "sin" => Ok(Value::Float(args[0].as_float().sin())),
             // "cos" => Ok(Value::Float(args[0].as_float().cos())),
+            "e" => Ok(Value::Float(d128!(2.71828182845904523536028747135266249))),
             "log" => args[0].log(),
             "ln" => args[0].ln(),
             // "tan" => Ok(Value::Float(args[0].as_float().tan())),
