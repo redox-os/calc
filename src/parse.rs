@@ -279,19 +279,13 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct DefaultEnvironment {
     recursion_level: usize,
     ans: Option<Value>,
 }
 
 impl DefaultEnvironment {
-    pub fn new() -> DefaultEnvironment {
-        DefaultEnvironment {
-            recursion_level: 0,
-            ans: None,
-        }
-    }
-
     pub fn with_ans(ans: Option<Value>) -> DefaultEnvironment {
         DefaultEnvironment {
             recursion_level: 0,
@@ -393,7 +387,7 @@ mod tests {
             Token::Number(Value::dec(1)),
         ];
         let expected = Value::dec(0);
-        let mut env = DefaultEnvironment::new();
+        let mut env = DefaultEnvironment::default();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
 
@@ -404,7 +398,7 @@ mod tests {
             Token::Dice,
             Token::Number(Value::dec(6)),
         ];
-        let mut env = DefaultEnvironment::new();
+        let mut env = DefaultEnvironment::default();
         let out = super::parse(&expr, &mut env);
         let out_float = out.unwrap().as_float().unwrap();
         assert!(out_float >= d128!(3.0) && out_float <= d128!(18.0));
@@ -428,7 +422,7 @@ mod tests {
             Token::Number(Value::Float(d128!(2.0))),
         ];
         let expected = Value::Float(d128!(2.0));
-        let mut env = DefaultEnvironment::new();
+        let mut env = DefaultEnvironment::default();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
 }

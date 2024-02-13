@@ -9,7 +9,7 @@ use clap::{App, Arg};
 
 use liner::Context;
 
-const PROMPT: &'static str = "[]> ";
+const PROMPT: &str = "[]> ";
 
 pub fn prompt<W: Write>(out: &mut W) -> io::Result<()> {
     write!(out, "{}", PROMPT)?;

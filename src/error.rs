@@ -116,7 +116,7 @@ impl fmt::Display for CalcError {
 
 impl From<ParseBigIntError> for CalcError {
     fn from(data: ParseBigIntError) -> CalcError {
-        CalcError::InvalidNumber(data.to_string().into())
+        CalcError::InvalidNumber(data.to_string())
     }
 }
 

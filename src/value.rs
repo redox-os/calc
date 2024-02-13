@@ -69,13 +69,17 @@ pub mod ops {
     }
 
     fn equalize(left: &mut Vec<u8>, right: &mut Vec<u8>) {
-        if left.len() > right.len() {
-            for it in repeat(Zero::zero()).take(left.len() - right.len()) {
-                right.push(it);
-            }
-        } else if right.len() > left.len() {
-            for it in repeat(Zero::zero()).take(right.len() - left.len()) {
-                left.push(it);
+        match left.len().cmp(&right.len()) {
+            std::cmp::Ordering::Greater => {
+                for it in repeat(Zero::zero()).take(left.len() - right.len()) {
+                    right.push(it);
+                }
+            },
+            std::cmp::Ordering::Equal => {},
+            std::cmp::Ordering::Less => {
+                for it in repeat(Zero::zero()).take(right.len() - left.len()) {
+                    left.push(it);
+                }
             }
         }
     }
@@ -110,9 +114,9 @@ pub mod ops {
         if m.is_zero() {
             1.into()
         } else if m.is_even() {
-            int_powu(&(n * n), &(m / (2 as u8)))
+            int_powu(&(n * n), &(m / (2_u8)))
         } else {
-            n * int_powu(&(n * n), &((m - (1 as u8)) / (2 as u8)))
+            n * int_powu(&(n * n), &((m - (1_u8)) / (2_u8)))
         }
     }
 
@@ -179,7 +183,7 @@ impl Value {
             (Value::Integral(n, t1), Value::Integral(m, t2)) => {
                 Ok(Value::Integral(f(n, m)?, *t1 + t2))
             }
-            (v1 @ Value::Float(_), v2 @ _) | (v1 @ _, v2 @ Value::Float(_)) => {
+            (v1 @ Value::Float(_), v2) | (v1, v2 @ Value::Float(_)) => {
                 Err(CalcError::BadTypes(PartialComp::binary(op, v1, v2)))
             }
         }
@@ -216,14 +220,14 @@ impl Value {
     pub fn pow(self, that: Value) -> Result<Self, CalcError> {
         let value = match (&self, &that) {
             (&Value::Float(n), &Value::Float(m)) => Value::Float(n.pow(m)),
-            (&Value::Float(n), &Value::Integral(ref m, _)) => {
+            (&Value::Float(n), Value::Integral(m, _)) => {
                 Value::Float(n.pow(ops::to_float(m)?))
             }
-            (&Value::Integral(ref n, _), &Value::Float(m)) => {
+            (Value::Integral(n, _), &Value::Float(m)) => {
                 Value::Float(ops::to_float(n)?.pow(m))
             }
             (&Value::Integral(ref n, t1), &Value::Integral(ref m, t2)) => {
-                match ops::int_pow(&n, &m) {
+                match ops::int_pow(n, m) {
                     Some(v) => Value::Integral(v, t1 + t2),
                     None => {
                         return Err(CalcError::WouldOverflow(
@@ -432,7 +436,7 @@ impl Div for Value {
                 if (n % m).is_zero() {
                     Value::Integral(n / m, t1 + t2)
                 } else {
-                    Value::Float(ops::to_float(&n)? / ops::to_float(&m)?)
+                    Value::Float(ops::to_float(n)? / ops::to_float(m)?)
                 }
             }
         };
@@ -482,7 +486,7 @@ impl Not for Value {
         match self {
             Value::Integral(n, t) => Ok(Value::Integral(ops::not(n), t)),
             Value::Float(f) => {
-                return Err(CalcError::BadTypes(PartialComp::unary("~", f)))
+                Err(CalcError::BadTypes(PartialComp::unary("~", f)))
             }
         }
     }
