@@ -1,12 +1,54 @@
-before_script:
-  - apt-get update -qq
-  - apt-get install -qq build-essential curl git
-  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-  - source "$HOME/.cargo/env"
-  - rustup component add rustfmt-preview
+stages:
+  - build
+  - test
 
-nightly:
+build:linux:
+  image: rust:latest
+  stage: build
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq build-essential curl git
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+    - rustup component add rustfmt-preview
   script:
+    - cargo build --release
+    - cargo clippy -- -D warnings
     - cargo fmt -- --check
-    - cargo build
+  artifacts:
+    paths:
+      - target/release/calc
+  cache:
+    paths:
+      - cargo/
+      - target/
+
+build:redox:
+  image: redoxos/redoxer
+  stage: build
+  script:
+    - redoxer build --verbose
+  cache:
+    paths:
+      - cargo/
+      - target/
+
+rustdoc:linux:
+  image: rust:latest
+  stage: build
+  script:
+    - cargo doc
+  artifacts:
+    paths:
+      - target/doc
+
+test:linux:
+  image: rust:latest
+  stage: test
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq build-essential curl git
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+  dependencies:
+    - build:linux
+  script:
     - cargo test
