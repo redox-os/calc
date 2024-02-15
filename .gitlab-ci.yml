@@ -25,6 +25,8 @@ build:linux:
 build:redox:
   image: redoxos/redoxer
   stage: build
+  before_script:
+    - apt-get update 
   script:
     - redoxer build --verbose
   cache:
@@ -52,3 +54,13 @@ test:linux:
     - build:linux
   script:
     - cargo test
+
+test:redox:
+  image: redoxos/redoxer
+  stage: test
+  before_script:
+    - apt-get update 
+  dependencies:
+    - build:redox
+  script:
+    - redoxer test +nightly --verbose
