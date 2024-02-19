@@ -279,19 +279,13 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct DefaultEnvironment {
     recursion_level: usize,
     ans: Option<Value>,
 }
 
 impl DefaultEnvironment {
-    pub fn new() -> DefaultEnvironment {
-        DefaultEnvironment {
-            recursion_level: 0,
-            ans: None,
-        }
-    }
-
     pub fn with_ans(ans: Option<Value>) -> DefaultEnvironment {
         DefaultEnvironment {
             recursion_level: 0,
@@ -303,8 +297,22 @@ impl DefaultEnvironment {
 impl Environment for DefaultEnvironment {
     fn arity(&self, atom: &str) -> Option<usize> {
         match atom {
-            "pi" | "tau" => Some(0),
+            "pi" | "tau" | "e" => Some(0),
             "log" => Some(1),
+            "ln" => Some(1),
+            "abs" => Some(1),
+            "sin" => Some(1),
+            "cos" => Some(1),
+            "tan" => Some(1),
+            "asin" => Some(1),
+            "acos" => Some(1),
+            "atan" => Some(1),
+            "sinh" => Some(1),
+            "cosh" => Some(1),
+            "tanh" => Some(1),
+            "asinh" => Some(1),
+            "acosh" => Some(1),
+            "atanh" => Some(1),
             _ => None,
         }
     }
@@ -316,14 +324,29 @@ impl Environment for DefaultEnvironment {
     ) -> Result<Value, CalcError> {
         match atom {
             "pi" => {
-                Ok(Value::Float(d128!(3.1415926535897932384626433832795028)))
+                Ok(Value::Float(d128!(3.14159265358979323846264338327950288)))
             }
             "tau" => Ok(Value::Float(
-                d128!(3.1415926535897932384626433832795028) * d128!(2.0),
+                d128!(3.14159265358979323846264338327950288) * d128!(2.0),
             )),
-            "log" => Ok(Value::Float(args[0].as_float()?.log10())),
-            // "sin" => Ok(Value::Float(args[0].as_float().sin())),
-            // "cos" => Ok(Value::Float(args[0].as_float().cos())),
+            "e" => {
+                Ok(Value::Float(d128!(2.71828182845904523536028747135266249)))
+            }
+            "log" => args[0].log(),
+            "ln" => args[0].ln(),
+            "abs" => Ok(args[0].abs()),
+            "sin" => args[0].sin(),
+            "cos" => args[0].cos(),
+            "tan" => args[0].tan(),
+            "asin" => args[0].asin(),
+            "acos" => args[0].acos(),
+            "atan" => args[0].atan(),
+            "sinh" => args[0].sinh(),
+            "cosh" => args[0].cosh(),
+            "tanh" => args[0].tanh(),
+            "asinh" => args[0].asinh(),
+            "acosh" => args[0].acosh(),
+            "atanh" => args[0].atanh(),
             // "tan" => Ok(Value::Float(args[0].as_float().tan())),
             _ => Err(CalcError::UnknownAtom(atom.to_owned())),
         }
@@ -366,7 +389,7 @@ mod tests {
             Token::Number(Value::dec(1)),
         ];
         let expected = Value::dec(0);
-        let mut env = DefaultEnvironment::new();
+        let mut env = DefaultEnvironment::default();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
 
@@ -377,7 +400,7 @@ mod tests {
             Token::Dice,
             Token::Number(Value::dec(6)),
         ];
-        let mut env = DefaultEnvironment::new();
+        let mut env = DefaultEnvironment::default();
         let out = super::parse(&expr, &mut env);
         let out_float = out.unwrap().as_float().unwrap();
         assert!(out_float >= d128!(3.0) && out_float <= d128!(18.0));
@@ -401,7 +424,7 @@ mod tests {
             Token::Number(Value::Float(d128!(2.0))),
         ];
         let expected = Value::Float(d128!(2.0));
-        let mut env = DefaultEnvironment::new();
+        let mut env = DefaultEnvironment::default();
         assert_eq!(super::parse(&expr, &mut env), Ok(expected));
     }
 }

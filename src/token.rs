@@ -65,16 +65,29 @@ enum OperatorState {
 }
 
 trait IsOperator {
-    fn is_operator(self) -> bool;
+    fn is_operator(&self) -> bool;
 }
 
 impl IsOperator for char {
-    fn is_operator(self) -> bool {
-        match self {
-            '+' | '-' | '/' | '^' | '²' | '³' | '&' | '|' | '~' | '>' | '%'
-            | '(' | ')' | '*' | '<' | 'd' => true,
-            _ => false,
-        }
+    fn is_operator(&self) -> bool {
+        matches!(
+            self,
+            '+' | '-'
+                | '/'
+                | '^'
+                | '²'
+                | '³'
+                | '&'
+                | '|'
+                | '~'
+                | '>'
+                | '%'
+                | '('
+                | ')'
+                | '*'
+                | '<'
+                | 'd'
+        )
     }
 }
 
@@ -146,8 +159,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
     while let Some(&c) = chars.peek() {
         match c.check_operator() {
             OperatorState::Complete => {
-                tokens
-                    .push(c.operator_type().ok_or_else(|| InvalidOperator(c))?);
+                tokens.push(c.operator_type().ok_or(InvalidOperator(c))?);
                 chars.next();
             }
             OperatorState::PotentiallyIncomplete => {
@@ -157,15 +169,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                         tokens.push(
                             [c, next_char]
                                 .operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?,
+                                .ok_or(InvalidOperator(c))?,
                         );
                         chars.next();
                     }
                     _ => {
-                        tokens.push(
-                            c.operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?,
-                        );
+                        tokens
+                            .push(c.operator_type().ok_or(InvalidOperator(c))?);
                     }
                 }
             }
@@ -173,8 +183,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                 if c.is_whitespace() {
                     chars.next();
                 } else if c.is_alphabetic() {
-                    tokens.push(consume_ans_or_atom(&mut chars).into());
-                } else if c.is_digit(16) || c == '.' {
+                    tokens.push(consume_ans_or_atom(&mut chars));
+                } else if c.is_ascii_hexdigit() || c == '.' {
                     tokens.push(Token::Number(consume_number(&mut chars)?));
                 } else {
                     let token_string = consume_until_new_token(&mut chars);
@@ -238,8 +248,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
         while let Some(&c) = chars.peek() {
             match c.check_operator() {
                 OperatorState::Complete => {
-                    let token =
-                        c.operator_type().ok_or_else(|| InvalidOperator(c))?;
+                    let token = c.operator_type().ok_or(InvalidOperator(c))?;
                     if token != Token::OpenParen && token != Token::CloseParen {
                         operators.push(token);
                     }
@@ -251,7 +260,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                         Some(&next_char) if next_char.is_operator() => {
                             let token = [c, next_char]
                                 .operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?;
+                                .ok_or(InvalidOperator(c))?;
                             if token != Token::OpenParen
                                 && token != Token::CloseParen
                             {
@@ -260,9 +269,8 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                             chars.next();
                         }
                         _ => {
-                            let token = c
-                                .operator_type()
-                                .ok_or_else(|| InvalidOperator(c))?;
+                            let token =
+                                c.operator_type().ok_or(InvalidOperator(c))?;
                             if token != Token::OpenParen
                                 && token != Token::CloseParen
                             {
@@ -277,7 +285,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
                     } else if c.is_alphabetic() {
                         values.push(consume_ans_or_atom(&mut chars).into());
                         break;
-                    } else if c.is_digit(16) || c == '.' {
+                    } else if c.is_ascii_hexdigit() || c == '.' {
                         values.push(PolishValue::Number(consume_number(
                             &mut chars,
                         )?));
@@ -295,7 +303,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
         while let Some(&c) = chars.peek() {
             if c.is_alphabetic() {
                 values.push(consume_ans_or_atom(&mut chars).into());
-            } else if c.is_digit(16) || c == '.' {
+            } else if c.is_ascii_hexdigit() || c == '.' {
                 values.push(PolishValue::Number(consume_number(&mut chars)?));
             } else if c.is_whitespace() || c == ')' {
                 let _ = chars.next();
@@ -340,7 +348,7 @@ pub fn tokenize_polish(input: &str) -> Result<Vec<Token>, CalcError> {
             }
         }
 
-        if values.len() == 0 || operators.len() != values.len() - 1 {
+        if values.is_empty() || operators.len() != values.len() - 1 {
             return Err(CalcError::UnexpectedEndOfInput);
         } else {
             // Removes the last value from the values vector so that they are
@@ -428,7 +436,7 @@ where
                     let num = Integral::from_str_radix(&digits, 16)?;
                     return Ok(Value::hex(num));
                 }
-                Some(c) if c.is_digit(16) || c == '.' => (),
+                Some(c) if c.is_ascii_hexdigit() || c == '.' => (),
                 _ => return Ok(Value::dec(0)),
             }
         }
@@ -472,7 +480,7 @@ fn consume_atom<I: Iterator<Item = char>>(input: &mut Peekable<I>) -> String {
 fn consume_until_new_token<I: Iterator<Item = char>>(input: &mut I) -> String {
     input
         .take_while(|c| {
-            !(c.is_whitespace() || c.is_operator() || c.is_digit(10))
+            !(c.is_whitespace() || c.is_operator() || c.is_ascii_digit())
         })
         .collect()
 }

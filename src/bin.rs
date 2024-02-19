@@ -9,7 +9,7 @@ use clap::{App, Arg};
 
 use liner::Context;
 
-const PROMPT: &'static str = "[]> ";
+const PROMPT: &str = "[]> ";
 
 pub fn prompt<W: Write>(out: &mut W) -> io::Result<()> {
     write!(out, "{}", PROMPT)?;
@@ -95,7 +95,7 @@ pub fn calc() -> Result<(), RuntimeError> {
                 let mut ans = None;
                 loop {
                     let line = con.read_line(
-                        PROMPT,
+                        liner::Prompt::from(PROMPT),
                         None,
                         &mut liner::BasicCompleter::new(
                             Vec::<String>::default(),
