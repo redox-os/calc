@@ -54,7 +54,7 @@ checksum = "72feb31ffc86498dacdbd0fcebb56138e7177a8cc5cea4516031d15ae85a742e"
 
 [[package]]
 name = "calculate"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "atty",
  "clap",
