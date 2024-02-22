@@ -18,7 +18,7 @@ license-file = "LICENSE"
 name = "calculate"
 readme = "README.md"
 repository = "https://gitlab.redox-os.org/redox-os/calc"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2018"
 
 [[bin]]
