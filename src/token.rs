@@ -166,12 +166,19 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, CalcError> {
                 chars.next();
                 match chars.peek() {
                     Some(&next_char) if next_char.is_operator() => {
-                        tokens.push(
-                            [c, next_char]
-                                .operator_type()
-                                .ok_or(InvalidOperator(c))?,
-                        );
-                        chars.next();
+                        if let Some(op) = [c, next_char].operator_type() {
+                            tokens.push(op);
+                            chars.next();
+                        } else if next_char == '(' {
+                            // This condition cannot be identified on the
+                            // current tokenize algorithm and is treated
+                            // as an exceptional case.
+                            tokens.push(
+                                c.operator_type().ok_or(InvalidOperator(c))?,
+                            );
+                        } else {
+                            return Err(CalcError::InvalidOperator(next_char));
+                        }
                     }
                     _ => {
                         tokens

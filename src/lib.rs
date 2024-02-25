@@ -94,6 +94,7 @@ mod tests {
             ("~0", Value::dec(-1)),
             // ("cos pi + sin (tau * (3 / 4))", Value::Float(d128!(-2.0))),
             ("~~5", Value::dec(5)),
+            ("4*(4)", Value::dec(16)),
         ];
         for (input, expected) in cases {
             assert_eq!(eval(input), Ok(expected));
